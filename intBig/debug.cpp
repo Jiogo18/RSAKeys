@@ -8,11 +8,10 @@ void debug::d(QString str, bool important)
 fenetre *debug::findFenetre()
 {
     QWidgetList l = QApplication::allWidgets();
-    int i=0;
-    while(i<l.size())
-    {
-        if(l.at(i)->accessibleName()=="fenetre")
-            return (fenetre*)l.at(i);
+    int i = 0;
+    while (i < l.size()) {
+        if (l.at(i)->accessibleName() == "fenetre")
+            return (fenetre *)l.at(i);
         i++;
     }
     qDebug("\"fenetre\" pas trouvé");

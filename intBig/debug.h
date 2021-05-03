@@ -10,7 +10,7 @@
 class debug
 {
 public:
-    static void d(QString str, bool important=false);
+    static void d(QString str, bool important = false);
     static fenetre *findFenetre();
     static void stat(QString type, quint64 start, quint64 stop);
 

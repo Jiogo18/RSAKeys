@@ -17,10 +17,9 @@ class RSA : public QObject
     Q_OBJECT
 public:
     RSA(fenetre *parent);
-    intBig4 chiffrer4(intBig4 msg, intBig4 d_e, intBig4 n, QProgressBar *ch=new QProgressBar);
-    intBig5 chiffrer5(intBig5 msg, intBig5 d_e, intBig5 n, QProgressBar *ch=new QProgressBar);
-    intBig6 chiffrer6(intBig6 msg, intBig6 d_e, intBig6 n, QProgressBar *ch=new QProgressBar);
-
+    intBig4 chiffrer4(intBig4 msg, intBig4 d_e, intBig4 n, QProgressBar *ch = new QProgressBar);
+    intBig5 chiffrer5(intBig5 msg, intBig5 d_e, intBig5 n, QProgressBar *ch = new QProgressBar);
+    intBig6 chiffrer6(intBig6 msg, intBig6 d_e, intBig6 n, QProgressBar *ch = new QProgressBar);
 };
 
 #endif // RSA_H

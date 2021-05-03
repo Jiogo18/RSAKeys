@@ -1,7 +1,6 @@
 #ifndef RSA2_H
 #define RSA2_H
 
-
 class RSA2
 {
 public:
