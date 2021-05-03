@@ -328,7 +328,7 @@ intBig5Parent intBig5Parent::operator/(const intBig5Parent &v) const
         return retour;
     if (v.isEmpty()) // 1/0=inf
     {
-        qDebug(QString("erreur division, le dénominateur vaut 0 " + v.toString()).toStdString().c_str());
+        qDebug() << "erreur division, le dénominateur vaut 0 " << v.toString();
         return retour;
     }
 

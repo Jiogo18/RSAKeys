@@ -298,16 +298,16 @@ intBig4Parent intBig4Parent::operator/(const intBig4Parent &v) const
         return retour;
     if (v.isEmpty()) //1/0
     {
-        qDebug(QString("erreur division, le dénominateur vaut 0 " + v.toString()).toStdString().c_str());
+        qDebug() << "erreur division, le dénominateur vaut 0 " << v.toString();
         return retour;
     }
 
     intBig4Parent v2(v);
     if (base() != v.base())
         v2 = v.toBase(base());
-    quint64 i = sizeNNul();     //le plus grand quint64
-    quint64 i2 = v2.sizeNNul(); //le plus grand quint64
-    if (operator<(v2)) {        //si c plus grand la division fera 0.xxx
+    //quint64 i = sizeNNul();     //le plus grand quint64
+    //quint64 i2 = v2.sizeNNul(); //le plus grand quint64
+    if (operator<(v2)) { //si c plus grand la division fera 0.xxx
         //si seulement un seul est -, c'est -
         retour.setNegative(isNegative() != v2.isNegative());
         return retour;

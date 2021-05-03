@@ -83,17 +83,17 @@ void fenetre::calc(int nb)
     switch (nb) {
 
     case 1: { //intBig4
-        intBig4 resultat4 = rsa.chiffrer4(intBig4(ui->intBig_M->text(), 10), intBig4(ui->intBig_D->text(), 10), intBig4(ui->intBig_N->text(), 10), ui->pb_chargement);
+        intBig4 resultat4 = rsa.chiffrer4(intBig4(ui->intBig_M->text(), 10), intBig4(ui->intBig_D->text(), 10), intBig4(ui->intBig_N->text(), 10));
         resultatStr = resultat4.toString();
         break;
     }
     case 2: { //intBig5
-        intBig5 resultat5 = rsa.chiffrer5(intBig5(ui->intBig_M->text(), 10), intBig5(ui->intBig_D->text(), 10), intBig5(ui->intBig_N->text(), 10), ui->pb_chargement);
+        intBig5 resultat5 = rsa.chiffrer5(intBig5(ui->intBig_M->text(), 10), intBig5(ui->intBig_D->text(), 10), intBig5(ui->intBig_N->text(), 10));
         resultatStr = resultat5.toString();
         break;
     }
     case 3: { //intBig6
-        intBig6 resultat6 = rsa.chiffrer6(intBig6B(ui->intBig_M->text(), 10), intBig6B(ui->intBig_D->text(), 10), intBig6B(ui->intBig_N->text(), 10), ui->pb_chargement);
+        intBig6 resultat6 = rsa.chiffrer6(intBig6B(ui->intBig_M->text(), 10), intBig6B(ui->intBig_D->text(), 10), intBig6B(ui->intBig_N->text(), 10));
         resultatStr = intBig6B(resultat6).toString(10);
         break;
     }
@@ -221,7 +221,7 @@ void fenetre::calcInfo1()
     quint64 b1 = ui->sIBase1->value();
     quint64 b2 = ui->sIBase2->value();
     if (true) {
-        ui->intBig_I2->setText(intBig6B(ui->intBig_I1->text(), b1).toString(b2));
+        ui->intBig_I2->setText(intBigB(ui->intBig_I1->text(), b1).toString(b2));
     }
     /*wait what appened? ui->cICalcSeparation existe pas?
     else if(ui->cICalcSeparation->isChecked())//faire comme un tableau

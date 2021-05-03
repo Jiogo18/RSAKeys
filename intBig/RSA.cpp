@@ -7,7 +7,7 @@ RSA::RSA(fenetre *parent) : QObject(parent)
     //connect(this, SIGNAL(debugS(QString)), parent, SLOT(debugSlot(QString)));//envoie les debugs de rsa vers fenetre
 } //fonctionne
 
-intBig4 RSA::chiffrer4(intBig4 msg, intBig4 d_e, intBig4 n, QProgressBar *ch)
+intBig4 RSA::chiffrer4(intBig4 msg, intBig4 d_e, intBig4 n)
 {
     if (msg >= n) {
         debug::d("le message est trop grand par rapport à N, stop", true);
@@ -55,7 +55,7 @@ intBig4 RSA::chiffrer4(intBig4 msg, intBig4 d_e, intBig4 n, QProgressBar *ch)
     return retour;
 }
 
-intBig5 RSA::chiffrer5(intBig5 msg, intBig5 d_e, intBig5 n, QProgressBar *ch)
+intBig5 RSA::chiffrer5(intBig5 msg, intBig5 d_e, intBig5 n)
 {
     if (msg >= n) {
         debug::d("le message est trop grand par rapport à N, stop", true);
@@ -95,7 +95,7 @@ intBig5 RSA::chiffrer5(intBig5 msg, intBig5 d_e, intBig5 n, QProgressBar *ch)
     return retour;
 }
 
-intBig6 RSA::chiffrer6(intBig6 msg, intBig6 d_e, intBig6 n, QProgressBar *ch)
+intBig6 RSA::chiffrer6(intBig6 msg, intBig6 d_e, intBig6 n)
 {
     if (msg >= n) {
         debug::d("le message est trop grand par rapport à N, stop", true);
