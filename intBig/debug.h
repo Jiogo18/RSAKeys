@@ -3,18 +3,21 @@
 
 #include <QString>
 #include <QApplication>
-#include "fenetre.h"
 #include <QtWidgets>
-#include <QDateTime>
+#include <time.h>
+#include <chrono>
 
 class debug
 {
 public:
     static void d(QString str, bool important = false);
-    static fenetre *findFenetre();
+    static QWidget *findFenetre();
     static void stat(QString type, quint64 start, quint64 stop);
 
-    static qint64 time() { return QDateTime::currentMSecsSinceEpoch(); }
+    static qint64 time()
+    {
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    }
 };
 
 #endif // DEBUG_H

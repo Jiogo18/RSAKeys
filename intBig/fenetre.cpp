@@ -26,7 +26,7 @@ fenetre::fenetre(const fenetre &fen) : QWidget()
 
 fenetre::~fenetre() { delete ui; }
 
-void fenetre::closeEvent(QEvent *event)
+void fenetre::closeEvent(QCloseEvent *event)
 {
     fSave->close();
     fStats->close();
@@ -72,36 +72,45 @@ void fenetre::calc(int nb)
     ui->te_resultat->setText(QString::number(nb) + "/" + QString::number(ui->sCalcOnly->maximum()));
     mapStats.clear();
     setCursor(Qt::WaitCursor);
-    quint64 start = QDateTime::currentMSecsSinceEpoch();
+    quint64 start = debug::time();
     quint64 stop = start;
     RSA rsa(this);
 
-    intBig4 resultat4;
-    intBig5 resultat5;
-    intBig6 resultat6;
+    connect(&rsa, &RSA::started, this, &fenetre::onRSAStarted);
+    connect(&rsa, &RSA::progression, this, &fenetre::onRSAProgress);
+
+    QString resultatStr = "";
     switch (nb) {
 
-    case 1: //intBig4
-        resultat4 = rsa.chiffrer4(intBig4(ui->intBig_M->text(), 10), intBig4(ui->intBig_D->text(), 10), intBig4(ui->intBig_N->text(), 10), ui->pb_chargement);
-        stop = QDateTime::currentMSecsSinceEpoch();
-        debug(QString::number(nb) + ": " + ui->intBig_M->text() + "^" + ui->intBig_D->text() + "%" + ui->intBig_N->text() + " = " + resultat4.toString() + " en " + QString::number(stop - start) + " msec", true);
+    case 1: { //intBig4
+        intBig4 resultat4 = rsa.chiffrer4(intBig4(ui->intBig_M->text(), 10), intBig4(ui->intBig_D->text(), 10), intBig4(ui->intBig_N->text(), 10), ui->pb_chargement);
+        resultatStr = resultat4.toString();
         break;
-
-    case 2: //intBig5
-        resultat5 = rsa.chiffrer5(intBig5(ui->intBig_M->text(), 10), intBig5(ui->intBig_D->text(), 10), intBig5(ui->intBig_N->text(), 10), ui->pb_chargement);
-        stop = QDateTime::currentMSecsSinceEpoch();
-        debug(QString::number(nb) + ": " + ui->intBig_M->text() + "^" + ui->intBig_D->text() + "%" + ui->intBig_N->text() + " = " + resultat5.toString() + " en " + QString::number(stop - start) + " msec", true);
+    }
+    case 2: { //intBig5
+        intBig5 resultat5 = rsa.chiffrer5(intBig5(ui->intBig_M->text(), 10), intBig5(ui->intBig_D->text(), 10), intBig5(ui->intBig_N->text(), 10), ui->pb_chargement);
+        resultatStr = resultat5.toString();
         break;
-
-    case 3: //intBig6
-        resultat6 = rsa.chiffrer6(intBig6B(ui->intBig_M->text(), 10), intBig6B(ui->intBig_D->text(), 10), intBig6B(ui->intBig_N->text(), 10), ui->pb_chargement);
-        stop = QDateTime::currentMSecsSinceEpoch();
-        debug(QString::number(nb) + ": " + ui->intBig_M->text() + "^" + ui->intBig_D->text() + "%" + ui->intBig_N->text() + " = " + intBig6B(resultat6).toString(10) + " en " + QString::number(stop - start) + " msec", true);
+    }
+    case 3: { //intBig6
+        intBig6 resultat6 = rsa.chiffrer6(intBig6B(ui->intBig_M->text(), 10), intBig6B(ui->intBig_D->text(), 10), intBig6B(ui->intBig_N->text(), 10), ui->pb_chargement);
+        resultatStr = intBig6B(resultat6).toString(10);
         break;
+    }
+    case 4: { //intBig nouvelle génération
+        intBig resultat = rsa.chiffrer(intBigB(ui->intBig_M->text(), 10), intBigB(ui->intBig_D->text(), 10), intBigB(ui->intBig_N->text(), 10));
+        resultatStr = intBigB(resultat).toString(10);
+        break;
+    }
 
     default:
         debug("Le calcul " + QString::number(nb) + " est inconnu.", true);
         break;
+    }
+
+    if (resultatStr != "") {
+        stop = debug::time();
+        debug(QString::number(nb) + ": " + ui->intBig_M->text() + "^" + ui->intBig_D->text() + "%" + ui->intBig_N->text() + " = " + resultatStr + " en " + QString::number(stop - start) + " ns", true);
     }
     addStat(QString::number(nb), start, stop);
 
@@ -113,7 +122,7 @@ void fenetre::calc(int nb)
 
 void fenetre::debug(QString str, bool important)
 {
-    str = QString::number(QDateTime::currentMSecsSinceEpoch()) + " " + str;
+    str = QString::number(debug::time()) + " " + str;
     if (important) {
         if (ui->te_resultat->toPlainText().count("\n") > 1000) //si il fait plus de 1 000 de retour à la lignes
             ui->te_resultat->clear();
@@ -176,7 +185,7 @@ void fenetre::finCalc()
 void fenetre::ouvrirFichier(int i)
 {
     fermerFichier();
-    QString fileName = ui->le_saveFile->text() + "/" + QString::number(i) + "-" + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".txt";
+    QString fileName = ui->le_saveFile->text() + "/" + QString::number(i) + "-" + QString::number(debug::time()) + ".txt";
     fSave->setFileName(fileName);
     if (fSave->open(QFile::WriteOnly)) {
         debug("fichier " + fileName + " ouvert", true);
@@ -201,9 +210,9 @@ void fenetre::ecrireStats()
     while (i.hasNext()) {
         i.next();
         //if(i.key().startsWith("chiffrement"))
-        debug(i.key() + " à passé " + QString::number(i.value().at(0)) + " msec pour " + QString::number(i.value().at(1)) + " calculs. min:" + QString::number(i.value().at(2)) + " max:" + QString::number(i.value().at(3)), true);
+        debug(i.key() + " à passé " + QString::number(i.value().at(0)) + " ns pour " + QString::number(i.value().at(1)) + " calculs. min:" + QString::number(i.value().at(2)) + " max:" + QString::number(i.value().at(3)), true);
         if (fStats->isOpen())
-            fStats->write(QString(i.key() + " à passé " + QString::number(i.value().at(0)) + " msec pour " + QString::number(i.value().at(1)) + " calculs. min:" + QString::number(i.value().at(2)) + " max:" + QString::number(i.value().at(3)) + "\n").toStdString().c_str());
+            fStats->write(QString(i.key() + " à passé " + QString::number(i.value().at(0)) + " ns pour " + QString::number(i.value().at(1)) + " calculs. min:" + QString::number(i.value().at(2)) + " max:" + QString::number(i.value().at(3)) + "\n").toStdString().c_str());
     }
 }
 
@@ -259,4 +268,18 @@ void fenetre::calcConsole()
     QString command = ui->lineConsole->text();
     ui->lineConsole->setText("");
     console.addCmd(ui->textConsole, command);
+}
+
+void fenetre::onRSAStarted(int steps)
+{
+    ui->pb_chargement->setMinimum(0);
+    ui->pb_chargement->setMaximum(steps);
+    ui->pb_chargement->setValue(0);
+    QCoreApplication::processEvents();
+}
+
+void fenetre::onRSAProgress(int remainingSteps)
+{
+    ui->pb_chargement->setValue(ui->pb_chargement->maximum() - remainingSteps);
+    QCoreApplication::processEvents();
 }

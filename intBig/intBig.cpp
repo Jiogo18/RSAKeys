@@ -1,48 +1,48 @@
-#include "intBig6.h"
+#include "intBig.h"
 #include "debug.h"
 
-intBig6::intBig6() { operator=(0); }
-intBig6::intBig6(qint64 v) { operator=(v); }
-intBig6::intBig6(const intBig6 &ib) { operator=(ib); }
+intBig::intBig() { operator=(0); }
+intBig::intBig(qint64 v) { operator=(v); }
+intBig::intBig(const intBig &ib) { operator=(ib); }
 
-intBig6 *intBig6::operator=(qint64 v)
+intBig *intBig::operator=(qint64 v)
 {
     value = {};
     addAt(0, v);
     return this;
 }
-intBig6 *intBig6::operator=(const intBig6 &ib)
+intBig *intBig::operator=(const intBig &ib)
 {
     value = ib.value;
     retenue = ib.retenue;
     return this;
 }
 
-intBig6 *intBig6::operator+=(qint64 v)
+intBig *intBig::operator+=(qint64 v)
 {
     addAt(0, v);
     reduceValue();
     return this;
 }
-intBig6 *intBig6::operator-=(qint64 v)
+intBig *intBig::operator-=(qint64 v)
 {
     addAt(0, -v);
     reduceValue();
     return this;
 }
-intBig6 *intBig6::operator%=(qint64 v) { return operator-=((*this / v) * v); }
-intBig6 intBig6::operator*(qint64 v) const
+intBig *intBig::operator%=(qint64 v) { return operator-=((*this / v) * v); }
+intBig intBig::operator*(qint64 v) const
 {
     if (v == 0)
         return 0;
-    intBig6 retour;
+    intBig retour;
     for (int i = 0; i < value.size(); i++)
         retour.addAt(i, value.at(i) * v);
     return retour;
 }
-intBig6 intBig6::operator/(qint64 v) const
+intBig intBig::operator/(qint64 v) const
 {
-    intBig6 retour;
+    intBig retour;
     if (v == base) { //optimisé
         QList<qint64> v2 = value;
         v2.removeFirst();
@@ -60,51 +60,51 @@ intBig6 intBig6::operator/(qint64 v) const
     return retour;
 }
 
-intBig6 *intBig6::operator+=(const intBig6 &ib)
+intBig *intBig::operator+=(const intBig &ib)
 {
     for (int i = 0; i < ib.value.size(); i++)
         addAt(i, ib.value.at(i));
     reduceValue();
     return this;
 }
-intBig6 *intBig6::operator-=(const intBig6 &ib)
+intBig *intBig::operator-=(const intBig &ib)
 {
     for (int i = 0; i < ib.value.size(); i++)
         addAt(i, -ib.value.at(i));
     reduceValue();
     return this;
 }
-intBig6 *intBig6::operator%=(const intBig6 &ib)
+intBig *intBig::operator%=(const intBig &ib)
 {
     qint64 start = debug::time();
     operator-=((operator/(ib)) * ib);
     debug::stat("%=intBig", start, debug::time());
     return this;
 }
-intBig6 intBig6::operator*(const intBig6 &ib) const
+intBig intBig::operator*(const intBig &ib) const
 {
-    intBig6 retour;
+    intBig retour;
     for (int i = 0; i < ib.value.size(); i++)
         for (int i2 = 0; i2 < value.size(); i2++)
             retour.addAt(i + i2, ib.value.at(i) * value.at(i2));
     retour.reduceValue();
     return retour;
 }
-intBig6 intBig6::operator/(intBig6 denominateur) const
+intBig intBig::operator/(intBig denominateur) const
 {
     qint64 start = debug::time();
     if (operator<(denominateur))
         return 0;
     if (denominateur == 1)
         return *this;
-    intBig6 mult;
-    intBig6 numerateur(*this);
+    intBig mult;
+    intBig numerateur(*this);
     int exp = 0;
     int value_coef = 8;
     //(7<vc<15) obj: etre <170 voir <160 (moyenne:165)
     //min: 10:150 9:153 8:148 7:156 6:157
     //=> le plus opti est un base 8 (peut etre car *2)
-    intBig6 denominateur2(denominateur * value_coef);
+    intBig denominateur2(denominateur * value_coef);
     while (numerateur >= denominateur2) {
         denominateur = denominateur2;
         denominateur2 *= value_coef;
@@ -113,7 +113,7 @@ intBig6 intBig6::operator/(intBig6 denominateur) const
     //division
     while (exp >= 0) {
         int current_mult = 0;
-        intBig6 denominateur2(denominateur);
+        intBig denominateur2(denominateur);
         while (denominateur2 <= numerateur) {
             denominateur2 += denominateur;
             current_mult++;
@@ -128,7 +128,7 @@ intBig6 intBig6::operator/(intBig6 denominateur) const
     return mult;
 }
 
-bool intBig6::operator<(const intBig6 &ib) const
+bool intBig::operator<(const intBig &ib) const
 {
     if (retenue && ib.retenue) { //tous les 2 -
         if (value.size() != ib.value.size())
@@ -144,7 +144,7 @@ bool intBig6::operator<(const intBig6 &ib) const
             return value.at(i) < ib.value.at(i);
     return false; //c'est ==
 }
-bool intBig6::operator>(const intBig6 &ib) const
+bool intBig::operator>(const intBig &ib) const
 {
     if (retenue && ib.retenue) { //tous les 2 -
         if (value.size() != ib.value.size())
@@ -160,7 +160,7 @@ bool intBig6::operator>(const intBig6 &ib) const
             return value.at(i) > ib.value.at(i);
     return false; //c'est ==
 }
-bool intBig6::operator==(const intBig6 &ib) const
+bool intBig::operator==(const intBig &ib) const
 {
     if (isEmpty() && ib.isEmpty())
         return true;
@@ -172,15 +172,15 @@ bool intBig6::operator==(const intBig6 &ib) const
     return true;
 }
 
-intBig6 intBig6::operator^(qint64 v) const
+intBig intBig::operator^(qint64 v) const
 {
-    intBig6 retour(1);
+    intBig retour(1);
     for (int i = 0; i < v; i++)
         retour *= *this;
     return retour;
 }
 
-bool intBig6::isEmpty() const
+bool intBig::isEmpty() const
 {
     for (int i = 0; i < value.size(); i++)
         if (value.at(i) != 0)
@@ -188,7 +188,7 @@ bool intBig6::isEmpty() const
     return true;
 }
 
-void intBig6::addAt(int i, qint64 v)
+void intBig::addAt(int i, qint64 v)
 {
     if (value.size() <= i) {
         if (retenue) {
@@ -216,7 +216,7 @@ void intBig6::addAt(int i, qint64 v)
             retenue = true;
     }
 }
-void intBig6::setAt(int i, qint64 v)
+void intBig::setAt(int i, qint64 v)
 {
     qint64 start = debug::time();
     if (value.size() <= i) {
@@ -234,14 +234,14 @@ void intBig6::setAt(int i, qint64 v)
     addAt(i, v);
     debug::stat("setAt", start, debug::time());
 }
-void intBig6::reduceValue()
+void intBig::reduceValue()
 {
     while (!value.isEmpty() && value.last() == 0)
         value.removeLast();
 }
 
-intBig6B::intBig6B(const intBig6 &ib) : intBig6(ib) {}
-intBig6B::intBig6B(QString v, qint64 base) : intBig6(0)
+intBigB::intBigB(const intBig &ib) : intBig(ib) {}
+intBigB::intBigB(QString v, qint64 base) : intBig(0)
 {
     QList<qint64> retour = {};
     bool negative = v.startsWith("-");
@@ -264,7 +264,7 @@ intBig6B::intBig6B(QString v, qint64 base) : intBig6(0)
             retour.push_back(valueOfBase(v2, base));
         }
     }
-    retour = toBase(retour, base, intBig6::base);
+    retour = toBase(retour, base, intBig::base);
     if (negative) {
         if (retour.size() > 0 && retour.back() == 1)
             retour.back() = -1;
@@ -274,9 +274,9 @@ intBig6B::intBig6B(QString v, qint64 base) : intBig6(0)
     value = retour;
 }
 
-QString intBig6B::toString(qint64 base) const
+QString intBigB::toString(qint64 base) const
 {
-    QList<qint64> withBase = toBase(value, intBig6::base, base);
+    QList<qint64> withBase = toBase(value, intBig::base, base);
     QString d = "";
     if (value.size() > 0 && value.back() < 0) {
         d = "-"; //negative
@@ -292,7 +292,7 @@ QString intBig6B::toString(qint64 base) const
                 withBase[i] += base;
                 retenue--;
                 if (i + 100 > baseSize) { //bug on a ajouté trop de cases
-                    qDebug() << "intBig6B::toString ERROR it is a positive array ?";
+                    qDebug() << "intBigB::toString ERROR it is a positive array ?";
                     break;
                 }
             }
@@ -305,7 +305,7 @@ QString intBig6B::toString(qint64 base) const
     }
     return d;
 }
-QList<qint64> intBig6B::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
+QList<qint64> intBigB::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
 {
     QList<qint64> retour = {};
     if (v.isEmpty())
@@ -325,8 +325,8 @@ QList<qint64> intBig6B::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
             retourPlus[i2] = retourPlus[i2] % baseTo;
             i2++;
         }
-        //on fait: intBig6B baseCase(intBig6B(intBig6::base, base)^i);
-        //on fait: retour += pow(baseintBig6::base, ) * value.at(i);
+        //on fait: intBigB baseCase(intBigB(intBig::base, base)^i);
+        //on fait: retour += pow(baseintBig::base, ) * value.at(i);
         qint64 retenue = 0;
         for (int i2 = 0; i2 < retourPlus.size() || retenue != 0; i2++) {
             while (retour.size() <= i2)
@@ -342,7 +342,7 @@ QList<qint64> intBig6B::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
     return retour;
 }
 
-QString intBig6B::valueOfBase(qint64 v, qint64 base)
+QString intBigB::valueOfBase(qint64 v, qint64 base)
 {
     try {
         switch (base) {
@@ -355,7 +355,7 @@ QString intBig6B::valueOfBase(qint64 v, qint64 base)
     }
     return QString::number(v);
 }
-qint64 intBig6B::valueOfBase(QString v, qint64 base)
+qint64 intBigB::valueOfBase(QString v, qint64 base)
 {
     int retour = -1;
     try {
@@ -374,8 +374,8 @@ qint64 intBig6B::valueOfBase(QString v, qint64 base)
     return v.toLongLong();
 }
 
-QDebug operator<<(QDebug debug, const intBig6 &ib)
+QDebug operator<<(QDebug debug, const intBig &ib)
 {
-    debug << intBig6B(ib).toString().toStdString().c_str();
+    debug << intBigB(ib).toString().toStdString().c_str();
     return debug;
 }

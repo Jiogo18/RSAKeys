@@ -3,10 +3,10 @@
 
 #include <QWidget>
 #include <QFile>
-#include <QDateTime>
 #include <QFileDialog>
 #include <QMap>
-#include "Console.h"
+#include "console.h"
+#include "debug.h"
 
 namespace Ui {
     class fenetre;
@@ -19,7 +19,7 @@ public:
     explicit fenetre(QWidget *parent = 0);
     fenetre(const fenetre &fen);
     ~fenetre();
-    void closeEvent(QEvent *event);
+    void closeEvent(QCloseEvent *event);
     void calcAll();
     void calcOnly();
     void calc(int nb);
@@ -33,6 +33,10 @@ public:
     void calcInfo1();
 
     void calcConsole();
+
+private slots:
+    void onRSAStarted(int steps);
+    void onRSAProgress(int remainingSteps);
 
 private:
     Ui::fenetre *ui;

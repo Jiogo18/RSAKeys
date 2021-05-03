@@ -4,10 +4,11 @@ FORMS += \
     fenetre.ui
 
 HEADERS += \
-    Console.h \
+    console.h \
     fenetre.h \
     RSA.h \
     debug.h \
+    intBig.h \
     intBig4Parent.h \
     intBig4.h \
     intBig5Parent.h \
@@ -15,8 +16,9 @@ HEADERS += \
     intBig6.h
 
 SOURCES += \
-    Console.cpp \
+    console.cpp \
     fenetre.cpp \
+    intBig.cpp \
     intBig6.cpp \
     main.cpp \
     RSA.cpp \
@@ -25,3 +27,7 @@ SOURCES += \
     intBig4.cpp \
     intBig5Parent.cpp \
     intBig5.cpp
+
+DISTFILES += \
+    README.md \
+    speed.md

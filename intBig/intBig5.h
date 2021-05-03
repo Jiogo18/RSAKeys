@@ -12,7 +12,7 @@ public:
     intBig5(QVector<quint64> value, quint64 base);
     intBig5(const intBig5 &value);
     intBig5(const intBig5Parent &value);
-    static const quint64 baseP = pow(2, 31); //max des cases = baseP-1
+    static const quint64 baseP = 2147483648; //qPow(2, 31); //max des cases = baseP-1
 };
 
 #endif // INTBIG5_H

@@ -1,17 +1,19 @@
 #include "debug.h"
+#include "fenetre.h"
 
 void debug::d(QString str, bool important)
 {
-    findFenetre()->debug(str, important);
+    fenetre *fen = static_cast<fenetre *>(findFenetre());
+    if (fen) fen->debug(str, important);
 }
 
-fenetre *debug::findFenetre()
+QWidget *debug::findFenetre()
 {
     QWidgetList l = QApplication::allWidgets();
     int i = 0;
     while (i < l.size()) {
         if (l.at(i)->accessibleName() == "fenetre")
-            return (fenetre *)l.at(i);
+            return l.at(i);
         i++;
     }
     qDebug("\"fenetre\" pas trouvé");
@@ -20,5 +22,6 @@ fenetre *debug::findFenetre()
 
 void debug::stat(QString type, quint64 start, quint64 stop)
 {
-    findFenetre()->addStat(type, start, stop);
+    fenetre *fen = static_cast<fenetre *>(findFenetre());
+    if (fen) fen->addStat(type, start, stop);
 }

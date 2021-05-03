@@ -1,4 +1,4 @@
-#include "Console.h"
+#include "console.h"
 #include <iostream>
 
 Console::Console() : QObject() {}
