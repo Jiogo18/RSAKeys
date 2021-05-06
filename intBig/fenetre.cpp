@@ -112,7 +112,7 @@ void fenetre::calc(int nb)
         stop = debug::time();
         debug(QString::number(nb) + ": " + ui->intBig_M->text() + "^" + ui->intBig_D->text() + "%" + ui->intBig_N->text() + " = " + resultatStr + " en " + QString::number(stop - start) + " ns", true);
     }
-    addStat(QString::number(nb), start, stop);
+    addStat(QString::number(nb), stop - start);
 
     ecrireStats();
 
@@ -156,20 +156,17 @@ void fenetre::debug(QString str, bool important)
     }
 }
 
-void fenetre::addStat(QString type, quint64 start, quint64 stop)
+void fenetre::addStat(QString type, quint64 time)
 {
     if (mapStats.contains(type)) {
-        mapStats[type][0] += (stop - start); //temps
-        mapStats[type][1] += 1;              //nb
-        if ((stop - start) < mapStats[type][2])
-            mapStats[type][2] = (stop - start); //min
-        if ((stop - start) > mapStats[type][3])
-            mapStats[type][3] = (stop - start); //max
+        mapStats[type].total += time; //temps
+        mapStats[type].nb_appel++;    //nb
+        if (time < mapStats[type].min)
+            mapStats[type].min = time; //min
+        if (time > mapStats[type].max)
+            mapStats[type].max = time; //max
     } else {
-        mapStats[type].append(stop - start);
-        mapStats[type].append(1);
-        mapStats[type].append(stop - start);
-        mapStats[type].append(stop - start);
+        mapStats[type] = {time, 1, time, time};
     }
 }
 
@@ -206,13 +203,17 @@ void fenetre::parcourir() { ui->le_saveFile->setText(QFileDialog::getExistingDir
 void fenetre::ecrireStats()
 {
     debug("\n\n\nStatistiques :", true);
-    QMapIterator<QString, QList<quint64>> i(mapStats);
+    QMapIterator<QString, timeStat> i(mapStats);
     while (i.hasNext()) {
         i.next();
+        QString str = i.key() + " à passé " + QString::number(i.value().total)
+                      + " ns pour " + QString::number(i.value().nb_appel)
+                      + " calculs. min:" + QString::number(i.value().min)
+                      + " max:" + QString::number(i.value().max);
         //if(i.key().startsWith("chiffrement"))
-        debug(i.key() + " à passé " + QString::number(i.value().at(0)) + " ns pour " + QString::number(i.value().at(1)) + " calculs. min:" + QString::number(i.value().at(2)) + " max:" + QString::number(i.value().at(3)), true);
+        debug(str, true);
         if (fStats->isOpen())
-            fStats->write(QString(i.key() + " à passé " + QString::number(i.value().at(0)) + " ns pour " + QString::number(i.value().at(1)) + " calculs. min:" + QString::number(i.value().at(2)) + " max:" + QString::number(i.value().at(3)) + "\n").toStdString().c_str());
+            fStats->write(QString(str + "\n").toStdString().c_str());
     }
 }
 

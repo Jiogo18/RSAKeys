@@ -10,9 +10,9 @@
 class debug
 {
 public:
-    static void d(QString str, bool important = false);
+    static void d(const QString &str, bool important = false);
     static QWidget *findFenetre();
-    static void stat(QString type, quint64 start, quint64 stop);
+    static void stat(const QString &type, quint64 start, quint64 stop);
 
     static qint64 time()
     {
