@@ -258,7 +258,7 @@ void intBig::addAt(int i, qint64 v)
         }
     } else {
         if (value.size() <= i) {
-            value.insert(value.end(), i - value.size() + 1, 0);
+            value.insert(value.size(), i - value.size() + 1, 0);
         }
     }
 
@@ -345,7 +345,7 @@ void intBig::setAt(int i, qint64 v)
             retenue_negative_en_fin = false;
         }
         if (value.size() <= i)
-            value.append(value.end(), value.begin() + i);
+            value.insert(value.size(), i - value.size() + 1, 0);
     }
     value[i] = 0;
     addAt(i, v);
@@ -432,7 +432,7 @@ QString intBigB::toString(qint64 base) const
         int baseSize = withBase.size();
         for (int i = 0; i < withBase.size() || retenue != 0; i++) {
             if (withBase.size() <= i)
-                withBase.insert(withBase.end(), i - withBase.size() + 1, 0);
+                withBase.insert(withBase.size(), i - withBase.size() + 1, 0);
             else
                 withBase[i] *= -1;
             withBase[i] += retenue;
@@ -467,7 +467,7 @@ QList<qint64> intBigB::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
         int i2 = 0;
         while (baseCase > 0) {
             if (retourPlus.size() <= i2)
-                retourPlus.insert(retourPlus.end(), i2 - retourPlus.size() + 1, 0);
+                retourPlus.insert(retourPlus.size(), i2 - retourPlus.size() + 1, 0);
             retourPlus[i2] += baseCase;
             baseCase = retourPlus[i2] / baseTo;
             retourPlus[i2] = retourPlus[i2] % baseTo;
@@ -478,7 +478,7 @@ QList<qint64> intBigB::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
         qint64 retenue = 0;
         for (int i2 = 0; i2 < retourPlus.size() || retenue != 0; i2++) {
             if (retour.size() <= i2)
-                retour.insert(retour.end(), i2 - retour.size() + 1, 0);
+                retour.insert(retour.size(), i2 - retour.size() + 1, 0);
             if (i2 < retourPlus.size())
                 retour[i2] += retourPlus.at(i2) * v.at(i);
             retour[i2] += retenue;
