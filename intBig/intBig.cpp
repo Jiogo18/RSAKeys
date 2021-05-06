@@ -4,13 +4,13 @@
 //////////////////////////////// intBig ////////////////////////////////
 
 intBig::intBig() : value({}) {}
-intBig::intBig(const qint64 &v) : value({}) { addAt(0, v); }
+intBig::intBig(const qint64 &v) : value({v}) { verifBase(); }
 intBig::intBig(const intBig &ib) : value(ib.value), retenue_negative_en_fin(ib.retenue_negative_en_fin) {}
 
 intBig *intBig::operator=(const qint64 &v)
 {
-    value = {};
-    addAt(0, v);
+    value = {v};
+    verifBase();
     return this;
 }
 intBig *intBig::operator=(const intBig &ib)
@@ -87,10 +87,12 @@ intBig *intBig::operator-=(const intBig &ib)
 intBig intBig::operator*(const qint64 &v) const
 {
     if (v == 0)
-        return 0; // 0
+        return 0;
     intBig retour;
+    retour.value = QList<qint64>(value.size());
     for (int i = 0; i < value.size(); i++)
-        retour.addAt(i, value.at(i) * v);
+        retour.value[i] = value.at(i) * v;
+    retour.verifBase();
     return retour;
 }
 intBig *intBig::operator*=(const qint64 &v)
@@ -99,10 +101,9 @@ intBig *intBig::operator*=(const qint64 &v)
         value = {};
         return this;
     }
-    QList<qint64> t = value;
-    value = QList<qint64>(value.size());
-    for (int i = 0; i < t.size(); i++)
-        addAt(i, t.at(i) * v);
+    for (int i = 0; i < value.size(); i++)
+        value[i] *= v;
+    verifBase();
     return this;
 }
 intBig intBig::operator*(const intBig &ib) const
@@ -114,19 +115,7 @@ intBig intBig::operator*(const intBig &ib) const
     retour.reduceValue();
     return retour;
 }
-intBig *intBig::operator*=(const intBig &ib)
-{
-    if (isEmpty() || ib.isEmpty()) {
-        value = {};
-        return this;
-    }
-    QList<qint64> t = value;
-    value = QList<qint64>(value.size());
-    for (int i = 0, i2; i < ib.value.size(); i++)
-        for (i2 = 0; i2 < t.size(); i2++)
-            addAt(i + i2, ib.value.at(i) * t.at(i2));
-    return this;
-}
+intBig *intBig::operator*=(const intBig &ib) { return *this = *this * ib; }
 
 //////////////////////////////// operator / ////////////////////////////////
 
@@ -183,18 +172,21 @@ intBig intBig::operator/(intBig denominateur) const
     intBig mult;
     intBig numerateur(*this);
     int exp = 0;
-    int value_coef = 8;
+    const int value_coef = 8;
     //(7<vc<15) obj: etre <170 voir <160 (moyenne:165)
     //min: 10:150 9:153 8:148 7:156 6:157
     //=> le plus opti est un base 8 (peut etre car *2)
-    intBig denominateur2(denominateur * value_coef);
-    while (numerateur >= denominateur2) {
-        denominateur = denominateur2;
-        denominateur2 *= value_coef;
+    // TODO opti : il faudrait un coef plus petit quand on se rapproche de exp < 5
+    // ou faire un système de plus ou moins mais plus performant ?
+    while (numerateur >= denominateur) {
+        denominateur *= value_coef;
         exp++;
     }
+    denominateur /= value_coef;
+    exp--;
     //division
     int current_mult;
+    intBig denominateur2;
     while (exp >= 0) {
         current_mult = 0;
         denominateur2 = denominateur;
@@ -211,28 +203,7 @@ intBig intBig::operator/(intBig denominateur) const
     debug::stat("/intBig", start, debug::time());
     return mult;
 }
-intBig *intBig::operator/=(const intBig &ib) { return operator=(operator/(ib)); }
-
-//////////////////////////////// operator % ////////////////////////////////
-
-intBig intBig::operator%(const qint64 &v) const
-{
-    intBig retour;
-    retour %= v;
-    return retour;
-}
-intBig *intBig::operator%=(const qint64 &v) { return operator-=(operator/(v) * v); }
-intBig intBig::operator%(const intBig &ib) const
-{
-    return (*this) - operator/(ib) * ib;
-}
-intBig *intBig::operator%=(const intBig &ib)
-{
-    qint64 start = debug::time();
-    operator-=(operator/(ib) * ib);
-    debug::stat("%=intBig", start, debug::time());
-    return this;
-}
+intBig *intBig::operator/=(const intBig &ib) { return *this = *this / ib; }
 
 //////////////////////////////// comparison operators ////////////////////////////////
 
@@ -247,94 +218,17 @@ bool intBig::operator<(const intBig &ib) const
         if (value.size() != ib.value.size())
             return value.size() < ib.value.size();
     }
-    for (int i = value.size() - 1; i >= 0; i--)
-        if (value.at(i) != ib.value.at(i)) {
-            return value.at(i) < ib.value.at(i);
-        }
-    return false; // c'est ==
-}
-bool intBig::operator>(const intBig &ib) const
-{
-    if (retenue_negative_en_fin && ib.retenue_negative_en_fin) { //tous les 2 -
-        if (value.size() != ib.value.size())
-            return value.size() < ib.value.size();
-    } else if (retenue_negative_en_fin || ib.retenue_negative_en_fin) { //l'un des 2 -
-        return !retenue_negative_en_fin;                                //this > 0 > ib sinon c'est l'inverse
-    } else {                                                            //tous les 2 +
-        if (value.size() != ib.value.size())
-            return value.size() > ib.value.size();
-    }
-    for (int i = value.size() - 1; i >= 0; i--)
-        if (value.at(i) != ib.value.at(i)) {
-            return value.at(i) > ib.value.at(i);
-        }
-    return false; // c'est ==
-}
-bool intBig::operator==(const intBig &ib) const
-{
-    if (value.size() == 0 && ib.value.size() == 0) return true;
-    if (value.size() != ib.value.size())
-        return false;
-    for (int i = value.size() - 1; i >= 0; i--)
-        if (value.at(i) != ib.value.at(i))
-            return false;
-    return true;
+
+    // attention, pdt le debug les reverse_iterator affichent une valeur "current" qui est la précédente
+    // donc il faut pas s'y fier
+    return std::lexicographical_compare(value.rbegin(), value.rend(), ib.value.rbegin(), ib.value.rend());
 }
 
-bool intBig::operator!=(const intBig &ib) const
+intBig intBig::operator^(quint64 v) const
 {
-    if (value.size() == 0 && ib.value.size() == 0) return false;
-    if (value.size() != ib.value.size())
-        return true;
-    for (int i = value.size() - 1; i >= 0; i--)
-        if (value.at(i) != ib.value.at(i))
-            return true;
-    return false;
-}
-
-bool intBig::operator<=(const intBig &ib) const
-{
-    if (retenue_negative_en_fin && ib.retenue_negative_en_fin) { //tous les 2 -
-        if (value.size() != ib.value.size())
-            return value.size() > ib.value.size();
-    } else if (retenue_negative_en_fin || ib.retenue_negative_en_fin) { //l'un des 2 -
-        return retenue_negative_en_fin;                                 //this < 0 < ib sinon c'est l'inverse
-    } else {                                                            //tous les 2 +
-        if (value.size() != ib.value.size())
-            return value.size() < ib.value.size();
-    }
-    for (int i = value.size() - 1; i >= 0; i--)
-        if (value.at(i) != ib.value.at(i)) {
-            return value.at(i) <= ib.value.at(i);
-        }
-    return true; //c'est ==
-}
-
-bool intBig::operator>=(const intBig &ib) const
-{
-    if (retenue_negative_en_fin && ib.retenue_negative_en_fin) { //tous les 2 -
-        if (value.size() != ib.value.size())
-            return value.size() < ib.value.size();
-
-    } else if (retenue_negative_en_fin || ib.retenue_negative_en_fin) { //l'un des 2 -
-        return !retenue_negative_en_fin;                                //this > 0 > ib sinon c'est l'inverse
-    } else {                                                            //tous les 2 +
-        if (value.size() != ib.value.size())
-            return value.size() > ib.value.size();
-    }
-    for (int i = value.size() - 1; i >= 0; i--)
-        if (value.at(i) != ib.value.at(i)) {
-            return value.at(i) >= ib.value.at(i);
-        }
-    return true; // c'est ==
-}
-
-intBig intBig::operator^(qint64 v) const
-{
-    Q_ASSERT(v >= 0);
     intBig retour;
     intBig square;
-    int i;
+    quint64 i;
     while (v > 0) {
         square = *this;
         for (i = 0; i < v; i *= 2) {
@@ -346,18 +240,13 @@ intBig intBig::operator^(qint64 v) const
     return retour;
 }
 
-bool intBig::isEmpty() const
-{
-    for (int i = 0; i < value.size(); i++)
-        if (value.at(i) != 0)
-            return false;
-    return true;
-}
-
 //////////////////////////////// intBig private ////////////////////////////////
 
-void intBig::addAt(const int &i, qint64 v)
+void intBig::addAt(int i, qint64 v)
 {
+    //return addAt(value.begin() + i, v);
+    if (v == 0) return;
+
     if (value.size() >= 4000) {
         qDebug() << "TROP GRAND" << value.size();
     }
@@ -369,7 +258,7 @@ void intBig::addAt(const int &i, qint64 v)
         }
     } else {
         if (value.size() <= i) {
-            value.insert(value.size(), i - value.size() + 1, 0);
+            value.insert(value.end(), i - value.size() + 1, 0);
         }
     }
 
@@ -393,6 +282,50 @@ void intBig::addAt(const int &i, qint64 v)
     if (retenue)
         addAt(i + 1, retenue);
 }
+
+void intBig::addAt(QList<qint64>::iterator i, qint64 v)
+{
+    if (v == 0) return;
+    if (!i) {
+        value = {0};
+        i = value.begin();
+    }
+    Q_ASSERT(value.size() < 4000);
+
+    if (retenue_negative_en_fin) {
+        while (value.end() <= i) {
+            value.last() += base;
+            value.append(-1);
+        }
+    } else {
+        while (value.end() <= i) {
+            //value.insert(value.end(), 0);
+            value.append(0);
+            // TODO: ça marche ça?
+        }
+    }
+
+    QList<qint64>::reference r = (*i);
+    r += v;
+
+    if (value.end() == i + 1) {
+        // dernière valeur
+        if (r < 0) {
+            // et on est à -1
+            retenue_negative_en_fin = true;
+            return; // pas de retenue à passer
+        } else {
+            // même si on a une retenue on sera forcément positif après
+            retenue_negative_en_fin = false;
+        }
+    }
+
+    qint64 retenue = qFloor((double)r / base);
+    r -= retenue * base; // modulo
+    if (retenue)
+        addAt(i + 1, retenue);
+}
+
 void intBig::setAt(int i, qint64 v)
 {
     qint64 start = debug::time();
@@ -411,11 +344,41 @@ void intBig::setAt(int i, qint64 v)
 
             retenue_negative_en_fin = false;
         }
-        value.insert(value.size(), i - value.size() + 1, 0);
+        if (value.size() <= i)
+            value.append(value.end(), value.begin() + i);
     }
     value[i] = 0;
     addAt(i, v);
     debug::stat("setAt", start, debug::time());
+}
+
+void intBig::verifBase()
+{
+    if (value.isEmpty())
+        return;
+    qint64 retenue = 0;
+    for (QList<qint64>::iterator i = value.begin(); i != value.end(); i++) {
+        // v = *i;
+        *i += retenue;
+        if (0 <= *i && *i < base) {
+            retenue = 0;
+            continue;
+        }
+        if (*i < 0) {
+            if (*i == -1 && i == value.end() - 1) // si c'est -1 on ignore aussi
+                continue;
+            retenue = *i / base + 1;
+        } else {
+            retenue = *i / base;
+        }
+        *i -= retenue * base;       // modulo base
+        if (i + 1 == value.end()) { // et qu'il y a une retenue
+            value.append(0);
+            i = value.end();
+            i -= 2;
+        }
+    }
+    retenue_negative_en_fin = value.back() < 0;
 }
 void intBig::reduceValue()
 {
@@ -434,7 +397,7 @@ intBigB::intBigB(QString v, const qint64 &base) : intBig(0)
         v.remove("-");
     if (base == 10 || base == 16 || base == 36) {
         while (!v.isEmpty()) {
-            retour.push_back(valueOfBase(QString(v.back()), base));
+            retour.append(valueOfBase(QString(v.back()), base));
             v.remove(v.size() - 1, 1);
         }
     } else {
@@ -446,7 +409,7 @@ intBigB::intBigB(QString v, const qint64 &base) : intBig(0)
             }
             if (!v.isEmpty()) //le |
                 v.remove(v.size() - 1, 1);
-            retour.push_back(valueOfBase(v2, base));
+            retour.append(valueOfBase(v2, base));
         }
     }
     retour = toBase(retour, base, intBig::base);
@@ -454,7 +417,7 @@ intBigB::intBigB(QString v, const qint64 &base) : intBig(0)
         if (retour.size() > 0 && retour.last() == 1)
             retour.last() = -1;
         else
-            retour.push_back(-1);
+            retour.append(-1);
     }
     value = retour;
 }
@@ -463,13 +426,13 @@ QString intBigB::toString(qint64 base) const
 {
     QList<qint64> withBase = toBase(value, intBig::base, base);
     QString d = "";
-    if (value.size() > 0 && value.back() < 0) {
+    if (value.size() > 0 && value.last() < 0) {
         d = "-"; //negative
         qint64 retenue = 0;
         int baseSize = withBase.size();
         for (int i = 0; i < withBase.size() || retenue != 0; i++) {
             if (withBase.size() <= i)
-                withBase.insert(i, 0);
+                withBase.insert(withBase.end(), i - withBase.size() + 1, 0);
             else
                 withBase[i] *= -1;
             withBase[i] += retenue;
@@ -483,10 +446,10 @@ QString intBigB::toString(qint64 base) const
             }
         }
     }
-    for (int i = withBase.size() - 1; i >= 0; i--) {
-        if (i != withBase.size() - 1 && base > 10 && !QList<int>({16, 36}).contains(base))
+    for (int i = withBase.size(); i > 0; i--) {
+        if (i != withBase.size() && base > 10 && (base != 16 && base != 36))
             d += "|";
-        d += valueOfBase(withBase.at(i), base);
+        d += valueOfBase(withBase.at(i - 1), base);
     }
     return d;
 }
@@ -503,8 +466,8 @@ QList<qint64> intBigB::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
         QList<qint64> retourPlus = {};
         int i2 = 0;
         while (baseCase > 0) {
-            while (retourPlus.size() <= i2)
-                retourPlus.insert(i2, 0);
+            if (retourPlus.size() <= i2)
+                retourPlus.insert(retourPlus.end(), i2 - retourPlus.size() + 1, 0);
             retourPlus[i2] += baseCase;
             baseCase = retourPlus[i2] / baseTo;
             retourPlus[i2] = retourPlus[i2] % baseTo;
@@ -514,8 +477,8 @@ QList<qint64> intBigB::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
         //on fait: retour += pow(baseintBig::base, ) * value.at(i);
         qint64 retenue = 0;
         for (int i2 = 0; i2 < retourPlus.size() || retenue != 0; i2++) {
-            while (retour.size() <= i2)
-                retour.insert(i2, 0);
+            if (retour.size() <= i2)
+                retour.insert(retour.end(), i2 - retour.size() + 1, 0);
             if (i2 < retourPlus.size())
                 retour[i2] += retourPlus.at(i2) * v.at(i);
             retour[i2] += retenue;

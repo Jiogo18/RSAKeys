@@ -155,10 +155,12 @@ intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n)
 
         while (puiss * 2 <= d_e) {
             puiss *= 2; //on incrémente de 2
-            msg2 = (msg2 * msg2) % n;
+            msg2 *= msg2;
+            msg2 %= n;
         }
         d_e %= puiss; //plus besoin de ces puissances
-        retour = (retour * msg2) % n;
+        retour *= msg2;
+        retour %= n;
         emit progression(intBigB(d_e).toString().size());
     }
     emit progression(0);
