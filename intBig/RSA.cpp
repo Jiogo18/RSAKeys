@@ -148,8 +148,9 @@ intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n)
     intBig retour(1);
     intBig msg2;
     intBig puiss;
-    emit started(intBigB(d_e).toString().size()); //la longeur de d_e
-    while (!d_e.isEmpty()) {                      // d_e != 0
+    emit progression(std::log10(d_e.toDouble()));
+    int nb_progression = 0;
+    while (!d_e.isEmpty()) { // d_e != 0
         puiss = 1;
         msg2 = msg;
 
@@ -161,7 +162,9 @@ intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n)
         d_e %= puiss; //plus besoin de ces puissances
         retour *= msg2;
         retour %= n;
-        emit progression(intBigB(d_e).toString().size());
+        if ((++nb_progression %= 100) == 0) {
+            emit progression(std::log10(d_e.toDouble()));
+        }
     }
     emit progression(0);
     quint64 stopChiffre = debug::time();

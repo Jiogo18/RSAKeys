@@ -28,6 +28,7 @@ public:
     fenetre(const fenetre &fen);
     ~fenetre();
     void closeEvent(QCloseEvent *event);
+    bool calcInit();
     void calcAll();
     void calcOnly();
     void calc(int nb);

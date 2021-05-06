@@ -22,18 +22,18 @@ intBig *intBig::operator=(const intBig &ib)
 
 //////////////////////////////// operator + ////////////////////////////////
 
+intBig intBig::operator+(const qint64 &v) const
+{
+    intBig retour = *this;
+    retour.addAt(0, v);
+    retour.reduceValue();
+    return retour;
+}
 intBig *intBig::operator+=(const qint64 &v)
 {
     addAt(0, v);
     reduceValue();
     return this;
-}
-intBig intBig::operator+(const qint64 &v) const
-{
-    intBig retour;
-    retour.addAt(0, v);
-    retour.reduceValue();
-    return retour;
 }
 intBig intBig::operator+(const intBig &ib) const
 {
@@ -172,10 +172,14 @@ intBig intBig::operator/(intBig denominateur) const
     intBig mult;
     intBig numerateur(*this);
     int exp = 0;
-    const int value_coef = 8;
+    const int value_coef = 16;
     //(7<vc<15) obj: etre <170 voir <160 (moyenne:165)
     //min: 10:150 9:153 8:148 7:156 6:157
-    //=> le plus opti est un base 8 (peut etre car *2)
+    //=> le plus opti est une base 16 (peut etre car *2)
+    // temps 06/05/2021: 8:11ms , 16:10ms, 32:11ms
+    // le plus opti est un multiple de 2 car base = 2^n
+    // donc seule la première case de denominateur est pleine, les autres ont 0 avec la base
+
     // TODO opti : il faudrait un coef plus petit quand on se rapproche de exp < 5
     // ou faire un système de plus ou moins mais plus performant ?
     while (numerateur >= denominateur) {
@@ -196,7 +200,7 @@ intBig intBig::operator/(intBig denominateur) const
         }
         numerateur -= denominateur * current_mult; //il y a pas plus opti
         mult *= value_coef;                        //on décale
-        mult.addAt(0, current_mult);
+        mult += current_mult;
         denominateur /= value_coef;
         exp--;
     }
@@ -238,6 +242,16 @@ intBig intBig::operator^(quint64 v) const
         v -= i / 2;
     }
     return retour;
+}
+
+long double intBig::toDouble() const
+{
+    long double v = 0;
+    for (int i = value.size() - 1; i >= 0; i--) {
+        v *= base;
+        v += value.at(i);
+    }
+    return v;
 }
 
 //////////////////////////////// intBig private ////////////////////////////////

@@ -50,6 +50,7 @@ public:
     bool operator>=(const intBig &ib) const;
 
     intBig operator^(quint64 v) const;
+    long double toDouble() const;
 
     bool isEmpty() const;
 

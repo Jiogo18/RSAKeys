@@ -34,16 +34,20 @@ void fenetre::closeEvent(QCloseEvent *event)
     qApp->quit();
 }
 
-void fenetre::calcAll()
+bool fenetre::calcInit()
 {
-    if (calcOn)
-        return;
+    if (calcOn) return false;
     calcOn = true;
     ui->bCalcAll->setDisabled(true);
     fStats->close();
     fStats->setFileName(ui->le_saveFile->text() + "/Stats.txt");
     fStats->open(QFile::WriteOnly);
+    return true;
+}
 
+void fenetre::calcAll()
+{
+    if (!calcInit()) return;
     for (int i = 1; i <= ui->sCalcOnly->maximum(); i++) {
         calc(i);
     }
@@ -52,14 +56,7 @@ void fenetre::calcAll()
 
 void fenetre::calcOnly()
 {
-    if (calcOn)
-        return;
-    calcOn = true;
-    ui->bCalcOnly->setDisabled(true);
-    fStats->close();
-    fStats->setFileName(ui->le_saveFile->text() + "/Stats.txt");
-    fStats->open(QFile::WriteOnly);
-
+    if (!calcInit()) return;
     calc(ui->sCalcOnly->value());
     finCalc();
 }
@@ -73,11 +70,11 @@ void fenetre::calc(int nb)
     mapStats.clear();
     setCursor(Qt::WaitCursor);
     quint64 start = debug::time();
-    quint64 stop = start;
     RSA rsa(this);
 
-    connect(&rsa, &RSA::started, this, &fenetre::onRSAStarted);
-    connect(&rsa, &RSA::progression, this, &fenetre::onRSAProgress);
+    // plus optimisé sans, mais utile avec des gros calculs
+    //connect(&rsa, &RSA::started, this, &fenetre::onRSAStarted);
+    //connect(&rsa, &RSA::progression, this, &fenetre::onRSAProgress);
 
     QString resultatStr = "";
     switch (nb) {
@@ -108,8 +105,8 @@ void fenetre::calc(int nb)
         break;
     }
 
+    quint64 stop = debug::time();
     if (resultatStr != "") {
-        stop = debug::time();
         debug(QString::number(nb) + ": " + ui->intBig_M->text() + "^" + ui->intBig_D->text() + "%" + ui->intBig_N->text() + " = " + resultatStr + " en " + QString::number(stop - start) + " ns", true);
     }
     addStat(QString::number(nb), stop - start);
