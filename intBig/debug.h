@@ -3,7 +3,7 @@
 
 #include <QString>
 #include <QApplication>
-#include <QtWidgets>
+#include <QWidget>
 #include <time.h>
 #include <chrono>
 

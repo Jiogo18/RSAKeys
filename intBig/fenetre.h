@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QFile>
 #include <QFileDialog>
+#include <QCloseEvent>
 #include <QMap>
 #include "console.h"
 #include "debug.h"

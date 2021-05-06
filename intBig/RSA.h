@@ -5,8 +5,6 @@
 #include <qmath.h>
 #include <QMap>
 #include <QRandomGenerator>
-#include <QtWidgets>
-#include "fenetre.h"
 #include "intBig4.h"
 #include "intBig5.h"
 #include "intBig6.h"
@@ -16,7 +14,7 @@ class RSA : public QObject
 {
     Q_OBJECT
 public:
-    RSA(fenetre *parent);
+    RSA(QObject *parent);
     intBig4 chiffrer4(intBig4 msg, intBig4 d_e, intBig4 n);
     intBig5 chiffrer5(intBig5 msg, intBig5 d_e, intBig5 n);
     intBig6 chiffrer6(intBig6 msg, intBig6 d_e, intBig6 n);

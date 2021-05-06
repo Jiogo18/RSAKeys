@@ -2,10 +2,7 @@
 #include "RSA.h"
 #include "debug.h"
 
-RSA::RSA(fenetre *parent) : QObject(parent)
-{
-    //connect(this, SIGNAL(debugS(QString)), parent, SLOT(debugSlot(QString)));//envoie les debugs de rsa vers fenetre
-} //fonctionne
+RSA::RSA(QObject *parent) : QObject(parent) {}
 
 intBig4 RSA::chiffrer4(intBig4 msg, intBig4 d_e, intBig4 n)
 {

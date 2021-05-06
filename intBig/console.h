@@ -4,7 +4,6 @@
 #include "intBig6.h"
 #include <QMap>
 #include <QTextEdit>
-#include <QtWidgets>
 
 class TreeOperator
 {
