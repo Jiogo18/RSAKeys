@@ -142,23 +142,25 @@ intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n)
     //plus efficace
     quint64 startChiffre = debug::debugTime();
     debug::d("début d'un chiffrement:" + intBigB(msg).toString() + " ^ " + intBigB(d_e).toString() + " % " + intBigB(n).toString() + " à " + QString::number(startChiffre));
-    intBig retour(1);
-    intBig msg2;
-    intBig puiss;
-    emit progression(std::log10(d_e.toDouble()));
-    int nb_progression = 0;
-    while (!d_e.isEmpty()) { // d_e != 0
-        puiss = 1;
-        msg2 = msg;
+    emit started(std::log10(d_e.toDouble()));
 
-        while (puiss * 2 <= d_e) {
-            puiss *= 2; //on incrémente de 2
-            msg2 *= msg2;
-            msg2 %= n;
-        }
-        d_e %= puiss; //plus besoin de ces puissances
-        retour *= msg2;
+    QList<intBig> msg2_i = {msg};
+    QList<intBig> deux_puiss_i = {1};
+    for (int i = 1; i <= std::log2(d_e.toDouble()); i++) {
+        // on calcul msg^puiss % n, avec puiss=2^i
+        msg2_i.append(msg2_i.last() * msg2_i.last() % n);
+        deux_puiss_i.append(deux_puiss_i.last() * 2);
+    }
+
+    intBig retour(1);
+    int nb_progression = 0, i;
+    while (!d_e.isEmpty()) { // d_e != 0
+        i = std::log2(d_e.toDouble());
+
+        d_e -= deux_puiss_i.at(i);
+        retour *= msg2_i.at(i);
         retour %= n;
+
         if ((++nb_progression %= 100) == 0) {
             emit progression(std::log10(d_e.toDouble()));
         }
@@ -166,6 +168,6 @@ intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n)
     emit progression(0);
     quint64 stopChiffre = debug::debugTime();
     debug::d("fin de " + QString::number(startChiffre) + " : " + intBigB(retour).toString() + " en " + QString::number(stopChiffre - startChiffre) + " ns");
-    debug::stat("chiffrement6", startChiffre, stopChiffre);
+    debug::stat("chiffrement", startChiffre, stopChiffre);
     return retour;
 }
