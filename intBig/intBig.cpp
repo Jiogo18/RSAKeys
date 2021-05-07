@@ -164,18 +164,24 @@ intBig *intBig::operator/=(const qint64 &v)
 }
 intBig intBig::operator/(const intBig &denominateur) const
 {
-    qint64 start = debug::debugTime();
     intBig numerateur(*this);
-#define coef_division 8
-    //(7<vc<15) obj: etre <170 voir <160 (moyenne:165)
-    //min: 10:150 9:153 8:148 7:156 6:157
-    //=> le plus opti est une base 16 (peut etre car *2)
-    // temps 06/05/2021: 8:11ms , 16:10ms, 32:11ms
-    // le plus opti est un multiple de 2 car base = 2^n
-    // donc seule la première case de denominateur est pleine, les autres ont 0 avec la base
+#define coef_division 16
+    // on décompose le calcul numerateur/denominateur :
+    // coef_division = cd
+    // mult = [ mult0 | mult1 | ... | multn ] écrit en base cd
+    // denominateurs = [ den | den * cd | ... | den * cd^n ]
+    // numerateur = mult0*den0 + mult1*den1 + ... + multn*denn
 
-    // TODO opti : il faudrait un coef plus petit quand on se rapproche de exp < 5
-    // ou faire un système de plus ou moins mais plus performant ?
+    // multi appartient à [0;cd[
+    // et entre 2 deni il y a cd
+    // donc un nombre multi*deni est unique
+    // ce qui fait que :
+    //  si numerateur < denin+1
+    //  si numerateur >= deni
+    //  alors multi est le plus grand nombre tel que :
+    //   numerateur >= multi * deni
+    //   (ainsi numerateur < (multi + 1) * deni)
+
     QList<intBig> denominateurs = {denominateur};
     while (numerateur >= denominateurs.last()) {
         denominateurs.append(denominateurs.last() * coef_division);
@@ -193,9 +199,6 @@ intBig intBig::operator/(const intBig &denominateur) const
         }
         mult *= coef_division; //on décale
         mult += current_mult;  // mult est une valeur en base value_coef
-    }
-    if (debug::debugTime() - start > 10000) { // mais pourquoi c'est plus lent quand c'est supprimé ???
-        debug::stat("/intBig", start, debug::debugTime());
     }
     return mult;
 }
