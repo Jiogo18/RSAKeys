@@ -14,9 +14,13 @@ public:
     static QWidget *findFenetre();
     static void stat(const QString &type, quint64 start, quint64 stop);
 
-    static qint64 time()
+    static qint64 currentTime()
     {
-        return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+    static qint64 debugTime()
+    {
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
     }
 };
 

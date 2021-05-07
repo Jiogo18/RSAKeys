@@ -164,7 +164,7 @@ intBig *intBig::operator/=(const qint64 &v)
 }
 intBig intBig::operator/(intBig denominateur) const
 {
-    qint64 start = debug::time();
+    qint64 start = debug::debugTime();
     if (operator<(denominateur))
         return {};
     if (denominateur == 1)
@@ -204,7 +204,7 @@ intBig intBig::operator/(intBig denominateur) const
         denominateur /= value_coef;
         exp--;
     }
-    debug::stat("/intBig", start, debug::time());
+    debug::stat("/intBig", start, debug::debugTime());
     return mult;
 }
 intBig *intBig::operator/=(const intBig &ib) { return *this = *this / ib; }
@@ -342,7 +342,7 @@ void intBig::addAt(QList<qint64>::iterator i, qint64 v)
 
 void intBig::setAt(int i, qint64 v)
 {
-    qint64 start = debug::time();
+    qint64 start = debug::debugTime();
     if (value.size() <= i) {
         if (retenue_negative_en_fin) {
             // TODO : alternative ?
@@ -363,7 +363,7 @@ void intBig::setAt(int i, qint64 v)
     }
     value[i] = 0;
     addAt(i, v);
-    debug::stat("setAt", start, debug::time());
+    debug::stat("setAt", start, debug::debugTime());
 }
 
 void intBig::verifBase()

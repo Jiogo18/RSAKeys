@@ -69,7 +69,7 @@ void fenetre::calc(int nb)
     ui->te_resultat->setText(QString::number(nb) + "/" + QString::number(ui->sCalcOnly->maximum()));
     mapStats.clear();
     setCursor(Qt::WaitCursor);
-    quint64 start = debug::time();
+    quint64 start = debug::debugTime();
     RSA rsa(this);
 
     // plus optimisé sans, mais utile avec des gros calculs
@@ -105,7 +105,7 @@ void fenetre::calc(int nb)
         break;
     }
 
-    quint64 stop = debug::time();
+    quint64 stop = debug::debugTime();
     if (resultatStr != "") {
         debug(QString::number(nb) + ": " + ui->intBig_M->text() + "^" + ui->intBig_D->text() + "%" + ui->intBig_N->text() + " = " + resultatStr + " en " + QString::number(stop - start) + " ns", true);
     }
@@ -119,7 +119,7 @@ void fenetre::calc(int nb)
 
 void fenetre::debug(QString str, bool important)
 {
-    str = QString::number(debug::time()) + " " + str;
+    str = QString::number(debug::debugTime()) + " " + str;
     if (important) {
         if (ui->te_resultat->toPlainText().count("\n") > 1000) //si il fait plus de 1 000 de retour à la lignes
             ui->te_resultat->clear();
@@ -179,7 +179,7 @@ void fenetre::finCalc()
 void fenetre::ouvrirFichier(int i)
 {
     fermerFichier();
-    QString fileName = ui->le_saveFile->text() + "/" + QString::number(i) + "-" + QString::number(debug::time()) + ".txt";
+    QString fileName = ui->le_saveFile->text() + "/" + QString::number(i) + "-" + QString::number(debug::currentTime()) + ".txt";
     fSave->setFileName(fileName);
     if (fSave->open(QFile::WriteOnly)) {
         debug("fichier " + fileName + " ouvert", true);

@@ -316,7 +316,7 @@ intBig4Parent intBig4Parent::operator/(const intBig4Parent &v) const
     intBig4Parent plus(base(), 0);
     intBig4Parent min(base(), 0);
     plus[sizeNNul() - 1] = at(sizeNNul() - 1);
-    quint64 start = debug::time();
+    quint64 start = debug::debugTime();
     retour = min;
     while (plus > 0) {
         intBig4Parent retour2(retour * v2);
@@ -344,7 +344,7 @@ intBig4Parent intBig4Parent::operator/(const intBig4Parent &v) const
     }
     //si seulement un seul est -, c'est -
     retour.setNegative(isNegative() != v2.isNegative());
-    debug::stat("/", start, debug::time());
+    debug::stat("/", start, debug::debugTime());
     return retour;
 }
 intBig4Parent intBig4Parent::operator/(quint64 v) const

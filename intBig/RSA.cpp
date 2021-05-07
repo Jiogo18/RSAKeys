@@ -15,7 +15,7 @@ intBig4 RSA::chiffrer4(intBig4 msg, intBig4 d_e, intBig4 n)
      * =((msg%n) + (msg%n)) %n+...
      * =(msg%n)²%n+...*/
     //plus efficace
-    quint64 startChiffre = debug::time();
+    quint64 startChiffre = debug::debugTime();
     debug::d("début d'un chiffrement:" + msg.toString() + " ^ " + d_e.toString() + " % " + n.toString() + " à " + QString::number(startChiffre));
     intBig4 retour(1);
     intBig4 msg2;
@@ -46,7 +46,7 @@ intBig4 RSA::chiffrer4(intBig4 msg, intBig4 d_e, intBig4 n)
         emit progression(d_e.toString().size());
     }
     emit progression(0);
-    quint64 stopChiffre = debug::time();
+    quint64 stopChiffre = debug::debugTime();
     debug::d("fin de " + QString::number(startChiffre) + " : " + retour.toString() + " en " + QString::number(stopChiffre - startChiffre) + " ns");
     debug::stat("chiffrement4", startChiffre, stopChiffre);
     return retour;
@@ -63,7 +63,7 @@ intBig5 RSA::chiffrer5(intBig5 msg, intBig5 d_e, intBig5 n)
      * =((msg%n) + (msg%n)) %n+...
      * =(msg%n)²%n+...*/
     //plus efficace
-    quint64 startChiffre = debug::time();
+    quint64 startChiffre = debug::debugTime();
     debug::d("début d'un chiffrement:" + msg.toString() + " ^ " + d_e.toString() + " % " + n.toString() + " à " + QString::number(startChiffre));
     intBig5 retour(1);
     intBig5 msg2;
@@ -86,7 +86,7 @@ intBig5 RSA::chiffrer5(intBig5 msg, intBig5 d_e, intBig5 n)
         emit progression(d_e.toString().size());
     }
     emit progression(0);
-    quint64 stopChiffre = debug::time();
+    quint64 stopChiffre = debug::debugTime();
     debug::d("fin de " + QString::number(startChiffre) + " : " + retour.toString() + " en " + QString::number(stopChiffre - startChiffre) + " ns");
     debug::stat("chiffrement5", startChiffre, stopChiffre);
     return retour;
@@ -103,7 +103,7 @@ intBig6 RSA::chiffrer6(intBig6 msg, intBig6 d_e, intBig6 n)
      * =((msg%n) + (msg%n)) %n+...
      * =(msg%n)²%n+...*/
     //plus efficace
-    quint64 startChiffre = debug::time();
+    quint64 startChiffre = debug::debugTime();
     debug::d("début d'un chiffrement:" + intBig6B(msg).toString() + " ^ " + intBig6B(d_e).toString() + " % " + intBig6B(n).toString() + " à " + QString::number(startChiffre));
     intBig6 retour(1);
     intBig6 msg2;
@@ -123,7 +123,7 @@ intBig6 RSA::chiffrer6(intBig6 msg, intBig6 d_e, intBig6 n)
         emit progression(intBig6B(d_e).toString().size());
     }
     emit progression(0);
-    quint64 stopChiffre = debug::time();
+    quint64 stopChiffre = debug::debugTime();
     debug::d("fin de " + QString::number(startChiffre) + " : " + intBig6B(retour).toString() + " en " + QString::number(stopChiffre - startChiffre) + " ns");
     debug::stat("chiffrement6", startChiffre, stopChiffre);
     return retour;
@@ -140,7 +140,7 @@ intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n)
      * =((msg%n) + (msg%n)) %n+...
      * =(msg%n)²%n+...*/
     //plus efficace
-    quint64 startChiffre = debug::time();
+    quint64 startChiffre = debug::debugTime();
     debug::d("début d'un chiffrement:" + intBigB(msg).toString() + " ^ " + intBigB(d_e).toString() + " % " + intBigB(n).toString() + " à " + QString::number(startChiffre));
     intBig retour(1);
     intBig msg2;
@@ -164,7 +164,7 @@ intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n)
         }
     }
     emit progression(0);
-    quint64 stopChiffre = debug::time();
+    quint64 stopChiffre = debug::debugTime();
     debug::d("fin de " + QString::number(startChiffre) + " : " + intBigB(retour).toString() + " en " + QString::number(stopChiffre - startChiffre) + " ns");
     debug::stat("chiffrement6", startChiffre, stopChiffre);
     return retour;

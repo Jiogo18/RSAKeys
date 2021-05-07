@@ -77,10 +77,10 @@ intBig5Parent intBig5Parent::fromText(QString value, quint64 base) //from text
 }
 intBig5Parent intBig5Parent::fromVector(QVector<quint64> value, quint64 base)
 {
-    quint64 start = debug::time();
+    quint64 start = debug::debugTime();
     intBig5Parent retour(base, 0);
     retour.setValue(value, base);
-    debug::stat("fromVector", start, debug::time());
+    debug::stat("fromVector", start, debug::debugTime());
     return retour;
 }
 
@@ -171,18 +171,18 @@ void intBig5Parent::operator++(int) { operator+=(1); }
 void intBig5Parent::operator--(int) { operator-=(1); }
 intBig5Parent intBig5Parent::sqrt() const
 {
-    quint64 start = debug::time();
+    quint64 start = debug::debugTime();
     if (isNegative()) {
         qDebug("erreur sqrt, racine d'un nombre négatif");
-        debug::stat("sqrt-", start, debug::time());
+        debug::stat("sqrt-", start, debug::debugTime());
         return intBig5Parent(base(), 0);
     }
     if (isEmpty()) {
-        debug::stat("sqrt0", start, debug::time());
+        debug::stat("sqrt0", start, debug::debugTime());
         return intBig5Parent(base(), 0); //0²=0
     }
     if (operator==(1)) {
-        debug::stat("sqrt1", start, debug::time());
+        debug::stat("sqrt1", start, debug::debugTime());
         return intBig5Parent(base(), 1); //1²=1
     }
 
@@ -211,15 +211,15 @@ intBig5Parent intBig5Parent::sqrt() const
             plus /= 20;
     }
     //ici retour² est == ou au dessous de this
-    debug::stat("sqrt", start, debug::time());
+    debug::stat("sqrt", start, debug::debugTime());
     return retour;
 }
 bool intBig5Parent::isPrime(QProgressBar *ch) const
 {
-    quint64 start = debug::time();
+    quint64 start = debug::debugTime();
     if (toVector(2).at(0) == 0) //division par 2
     {
-        debug::stat("isPrime0", start, debug::time());
+        debug::stat("isPrime0", start, debug::debugTime());
         return false;
     }
     intBig5Parent sqrtNb = sqrt();
@@ -228,14 +228,14 @@ bool intBig5Parent::isPrime(QProgressBar *ch) const
     ch->setValue(1);
     for (intBig5Parent i = 3; i <= sqrtNb; i += 2) { //les pairs ont déja ete testé
         if (operator%(i) == 0) {
-            debug::stat("isPrime", start, debug::time());
+            debug::stat("isPrime", start, debug::debugTime());
             return false;
         }
         ch->setValue(i.toString().size());
         QCoreApplication::processEvents();
     }
     ch->setValue(ch->maximum());
-    debug::stat("isPrime", start, debug::time());
+    debug::stat("isPrime", start, debug::debugTime());
     return true;
 }
 
@@ -261,11 +261,11 @@ intBig5Parent intBig5Parent::operator^(quint64 v) const
 }
 intBig5Parent intBig5Parent::operator%(intBig5Parent v) const
 {
-    quint64 start = debug::time();
+    quint64 start = debug::debugTime();
     intBig5Parent retour(base(), 0);
     if (v == 1 || v == 0) //ça donnera 0 (avec v==0 normalement c'est non défini mais c'est généralement %0.1)
     {
-        debug::stat("%1", start, debug::time());
+        debug::stat("%1", start, debug::debugTime());
         return retour;
     }
     intBig5Parent v2(v);
@@ -280,7 +280,7 @@ intBig5Parent intBig5Parent::operator%(intBig5Parent v) const
     while (retour.isNegative() && retour < 0)
         retour += v2; //si il est encore négatif, on le remonte d'un (ex:-9%4 = -1 => 3)
     retour.resize();
-    debug::stat("%", start, debug::time());
+    debug::stat("%", start, debug::debugTime());
     return retour;
 }
 intBig5Parent intBig5Parent::operator*(const intBig5Parent &v) const

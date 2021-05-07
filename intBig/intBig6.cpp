@@ -76,9 +76,9 @@ intBig6 *intBig6::operator-=(const intBig6 &ib)
 }
 intBig6 *intBig6::operator%=(const intBig6 &ib)
 {
-    qint64 start = debug::time();
+    qint64 start = debug::debugTime();
     operator-=((operator/(ib)) * ib);
-    debug::stat("%=intBig", start, debug::time());
+    debug::stat("%=intBig", start, debug::debugTime());
     return this;
 }
 intBig6 intBig6::operator*(const intBig6 &ib) const
@@ -92,7 +92,7 @@ intBig6 intBig6::operator*(const intBig6 &ib) const
 }
 intBig6 intBig6::operator/(intBig6 denominateur) const
 {
-    qint64 start = debug::time();
+    qint64 start = debug::debugTime();
     if (operator<(denominateur))
         return 0;
     if (denominateur == 1)
@@ -124,7 +124,7 @@ intBig6 intBig6::operator/(intBig6 denominateur) const
         denominateur /= value_coef;
         exp--;
     }
-    debug::stat("/intBig", start, debug::time());
+    debug::stat("/intBig", start, debug::debugTime());
     return mult;
 }
 
@@ -218,7 +218,7 @@ void intBig6::addAt(int i, qint64 v)
 }
 void intBig6::setAt(int i, qint64 v)
 {
-    qint64 start = debug::time();
+    qint64 start = debug::debugTime();
     if (value.size() <= i) {
         if (retenue) {
             while (value.at(value.size() - 1) < 0) {
@@ -232,7 +232,7 @@ void intBig6::setAt(int i, qint64 v)
     }
     value[i] = 0;
     addAt(i, v);
-    debug::stat("setAt", start, debug::time());
+    debug::stat("setAt", start, debug::debugTime());
 }
 void intBig6::reduceValue()
 {
