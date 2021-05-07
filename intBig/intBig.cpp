@@ -253,9 +253,7 @@ void intBig::addAt(int i, qint64 v)
     //return addAt(value.begin() + i, v);
     if (v == 0) return;
 
-    if (value.size() >= 4000) {
-        qDebug() << "TROP GRAND" << value.size();
-    }
+    Q_ASSERT(value.size() < 10000);
 
     if (retenue_negative_en_fin) {
         while (value.size() <= i) {
@@ -296,7 +294,7 @@ void intBig::addAt(QList<qint64>::iterator i, qint64 v)
         value = {0};
         i = value.begin();
     }
-    Q_ASSERT(value.size() < 4000);
+    Q_ASSERT(value.size() < 10000);
 
     if (retenue_negative_en_fin) {
         while (value.end() <= i) {
