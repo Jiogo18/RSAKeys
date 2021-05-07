@@ -162,17 +162,11 @@ intBig *intBig::operator/=(const qint64 &v)
     reduceValue();
     return this;
 }
-intBig intBig::operator/(intBig denominateur) const
+intBig intBig::operator/(const intBig &denominateur) const
 {
     qint64 start = debug::debugTime();
-    if (operator<(denominateur))
-        return {};
-    if (denominateur == 1)
-        return *this;
-    intBig mult;
     intBig numerateur(*this);
-    int exp = 0;
-    const int value_coef = 16;
+#define coef_division 8
     //(7<vc<15) obj: etre <170 voir <160 (moyenne:165)
     //min: 10:150 9:153 8:148 7:156 6:157
     //=> le plus opti est une base 16 (peut etre car *2)
@@ -182,29 +176,27 @@ intBig intBig::operator/(intBig denominateur) const
 
     // TODO opti : il faudrait un coef plus petit quand on se rapproche de exp < 5
     // ou faire un système de plus ou moins mais plus performant ?
-    while (numerateur >= denominateur) {
-        denominateur *= value_coef;
-        exp++;
+    QList<intBig> denominateurs = {denominateur};
+    while (numerateur >= denominateurs.last()) {
+        denominateurs.append(denominateurs.last() * coef_division);
     }
-    denominateur /= value_coef;
-    exp--;
+    denominateurs.removeLast();
+
     //division
-    int current_mult;
-    intBig denominateur2;
-    while (exp >= 0) {
+    intBig mult;
+    qint64 current_mult;
+    for (QList<intBig>::const_reverse_iterator i(denominateurs.rbegin()); i != denominateurs.rend(); i++) {
         current_mult = 0;
-        denominateur2 = denominateur;
-        while (denominateur2 <= numerateur) {
-            denominateur2 += denominateur;
+        while (*i <= numerateur) {
+            numerateur -= *i;
             current_mult++;
         }
-        numerateur -= denominateur * current_mult; //il y a pas plus opti
-        mult *= value_coef;                        //on décale
-        mult += current_mult;
-        denominateur /= value_coef;
-        exp--;
+        mult *= coef_division; //on décale
+        mult += current_mult;  // mult est une valeur en base value_coef
     }
-    debug::stat("/intBig", start, debug::debugTime());
+    if (debug::debugTime() - start > 10000) { // mais pourquoi c'est plus lent quand c'est supprimé ???
+        debug::stat("/intBig", start, debug::debugTime());
+    }
     return mult;
 }
 intBig *intBig::operator/=(const intBig &ib) { return *this = *this / ib; }
@@ -247,9 +239,9 @@ intBig intBig::operator^(quint64 v) const
 long double intBig::toDouble() const
 {
     long double v = 0;
-    for (int i = value.size() - 1; i >= 0; i--) {
+    for (QList<qint64>::const_reverse_iterator i(value.rbegin()); i != value.rend(); i++) {
         v *= base;
-        v += value.at(i);
+        v += *i;
     }
     return v;
 }

@@ -34,7 +34,7 @@ public:
 
     intBig operator/(const qint64 &v) const;
     intBig *operator/=(const qint64 &v);
-    intBig operator/(intBig denominateur) const;
+    intBig operator/(const intBig &denominateur) const;
     intBig *operator/=(const intBig &ib);
 
     intBig operator%(const qint64 &v) const;
