@@ -223,19 +223,117 @@ bool intBig::operator<(const intBig &ib) const
     return std::lexicographical_compare(value.rbegin(), value.rend(), ib.value.rbegin(), ib.value.rend());
 }
 
+//////////////////////////////// other operators ////////////////////////////////
+
+void intBig::operator++(int) { operator+=(1); }
+void intBig::operator--(int) { operator-=(1); }
+
+intBig intBig::sqrt() const
+{
+    quint64 start = debug::debugTime();
+    if (retenue_negative_en_fin) {
+        qDebug("erreur sqrt, racine d'un nombre négatif");
+        debug::stat("sqrt-", start, debug::debugTime());
+        return 0;
+    }
+    if (isEmpty()) {
+        debug::stat("sqrt0", start, debug::debugTime());
+        return 0; //0²=0
+    }
+    if (*this == 1) {
+        debug::stat("sqrt1", start, debug::debugTime());
+        return 1; //1²=1
+    }
+
+    intBig min(1);
+    intBig retour(1);
+    intBig fois = *this / 2;
+#define coef_sqrt 20
+    while (fois > 1) {
+        while (retour * retour <= *this) { //augmentation au fur et à mesure
+            min = retour;
+            retour *= fois;
+        }
+        retour = min;
+        fois /= coef_sqrt;
+    }
+
+    intBig plus(retour);
+    while (plus > 0) {
+        while (retour * retour <= *this) { //augmentation au fur et à mesure
+            min = retour;
+            retour += plus;
+        }
+        retour = min;
+        if (plus > 1 && plus < coef_sqrt) {
+            plus = 1; //+1
+        } else
+            plus /= coef_sqrt;
+    }
+    //ici retour² est == ou au dessous de this
+    debug::stat("sqrt", start, debug::debugTime());
+    return retour;
+}
+
+bool intBig::isPrime() const
+{
+    if (isEmpty()) return false;
+    if (intBigB(*this).toString(2).back() == 0) //division par 2
+    {
+        return false;
+    }
+    intBig sqrtNb = sqrt();
+    qDebug() << "sqrtNb" << sqrtNb.value << value;
+    for (intBig i = 3; i <= sqrtNb; i += 2) { //les pairs ont déja ete testé
+        if (!isPrime(i)) {
+            // optimisation possible : table de nb premiers entre 2-10000
+            return false;
+        }
+    }
+    return true;
+}
+
+bool intBig::isPrime(intBig b) const
+{
+    if (*this < b) return b.isPrime(*this);
+    intBig temp, a(*this);
+
+    /*while(nb2>0)
+    {
+        temp = nb2%nb1;
+        nb1 = nb2;
+        nb2 = temp;
+    }
+    return nb1 == 1;//if 1, they are prime else nb1 = PGCD*/
+    //PGCD scratch
+
+    temp = a;
+    while (b > 0) {
+        //while(temp>=b)
+        //temp -= b;
+        temp %= b; //plus rapide
+        a = b;
+        b = temp;
+        temp = a;
+    }
+    return temp == 1; //temp== pgcd et si c'est 1, ils sont premiers entre eux
+}
+
 intBig intBig::operator^(quint64 v) const
 {
-    intBig retour;
+    intBig retour = 1;
     intBig square;
     quint64 i;
     while (v > 0) {
         square = *this;
-        for (i = 0; i < v; i *= 2) {
+        for (i = 1; i * 2 <= v; i *= 2) {
             square *= square;
         }
-        retour += square;
-        v -= i / 2;
+        // square = this^(2i)
+        retour *= square;
+        v -= i;
     }
+    // this^n = this * this * this ... v fois = this^1 * this^2 * this^4 * this^8 * ... * this^(2^i) * ...
     return retour;
 }
 
@@ -458,6 +556,7 @@ QString intBigB::toString(qint64 base) const
             d += "|";
         d += valueOfBase(withBase.at(i - 1), base);
     }
+    if (d == "") return "0";
     return d;
 }
 QList<qint64> intBigB::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
@@ -467,30 +566,38 @@ QList<qint64> intBigB::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
         return {};
     if (baseFrom == baseTo) //si c les meme base
         return v;
+
+    QVector<intBig> baseCase = {1};
+    for (int i = 0; i < v.size(); i++) {
+        // = baseFrom^i (valeur de la case si remplie avec 1)
+        baseCase.append(baseCase.last() * baseFrom);
+    }
+    int baseCasei = v.size() - 1;
+    intBig baseCase2;
+
+    QList<qint64> retourPlus;
+    int i2; // parcourir le retourPlus
+    qint64 retenue;
     for (qint64 i = v.size() - 1; i >= 0; i--) {
 
-        qint64 baseCase = qPow(baseFrom, i); //TODO: à terme il faudrait une liste
-        QList<qint64> retourPlus = {};
-        int i2 = 0;
-        while (baseCase > 0) {
-            if (retourPlus.size() <= i2)
-                retourPlus.insert(retourPlus.size(), i2 - retourPlus.size() + 1, 0);
-            retourPlus[i2] += baseCase;
-            baseCase = retourPlus[i2] / baseTo;
-            retourPlus[i2] = retourPlus[i2] % baseTo;
-            i2++;
+        baseCase2 = baseCase.at(baseCasei);
+        baseCasei--;
+        retourPlus = {};
+        while (baseCase2 > 0) {
+            retourPlus.append(baseCase2 % baseTo); // toujours qu'une case à ajouter
+            baseCase2 /= baseTo;
         }
         //on fait: intBigB baseCase(intBigB(intBig::base, base)^i);
         //on fait: retour += pow(baseintBig::base, ) * value.at(i);
-        qint64 retenue = 0;
-        for (int i2 = 0; i2 < retourPlus.size() || retenue != 0; i2++) {
+        retenue = 0;
+        for (i2 = 0; i2 < retourPlus.size() || retenue != 0; i2++) {
             if (retour.size() <= i2)
-                retour.insert(retour.size(), i2 - retour.size() + 1, 0);
+                retour.append(0);
             if (i2 < retourPlus.size())
                 retour[i2] += retourPlus.at(i2) * v.at(i);
             retour[i2] += retenue;
             retenue = retour[i2] / baseTo;
-            retour[i2] = retour[i2] % baseTo;
+            retour[i2] %= baseTo;
         }
     }
 

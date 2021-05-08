@@ -37,7 +37,7 @@ public:
     intBig operator/(const intBig &denominateur) const;
     intBig *operator/=(const intBig &ib);
 
-    intBig operator%(const qint64 &v) const;
+    qint64 operator%(const qint64 &v) const;
     intBig *operator%=(const qint64 &v);
     intBig operator%(const intBig &ib) const;
     intBig *operator%=(const intBig &ib);
@@ -49,10 +49,17 @@ public:
     bool operator<=(const intBig &ib) const;
     bool operator>=(const intBig &ib) const;
 
+    void operator++(int);
+    void operator--(int);
+    intBig sqrt() const;
+    bool isPrime() const;
+    bool isPrime(intBig b) const;
     intBig operator^(quint64 v) const;
     long double toDouble() const;
 
     bool isEmpty() const;
+    bool isNul() const;
+    bool isNegative() const;
 
 protected:
     static const qint64 base = 2147483648; //2^31
@@ -79,7 +86,7 @@ inline bool intBig::operator>=(const intBig &ib) const { return !(*this < ib); }
 
 //////////////////////////////// inline operator % ////////////////////////////////
 
-inline intBig intBig::operator%(const qint64 &v) const { return *this - (*this / v) * v; }
+inline qint64 intBig::operator%(const qint64 &v) const { return (*this - (*this / v) * v).toDouble(); }
 inline intBig *intBig::operator%=(const qint64 &v) { return *this -= (*this / v) * v; }
 inline intBig intBig::operator%(const intBig &ib) const { return (*this) - (*this / ib) * ib; }
 inline intBig *intBig::operator%=(const intBig &ib) { return *this -= (*this / ib) * ib; }
@@ -90,6 +97,10 @@ inline bool intBig::isEmpty() const
 {
     return value == QList<qint64>(); // == { 0, 0, ... }
 }
+
+inline bool intBig::isNul() const { return isEmpty(); }
+
+inline bool intBig::isNegative() const { return retenue_negative_en_fin; }
 
 //////////////////////////////// intBigB ////////////////////////////////
 
