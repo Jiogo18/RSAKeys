@@ -6,6 +6,7 @@
 intBig::intBig() : value({}) {}
 intBig::intBig(const qint64 &v) : value({v}) { verifBase(); }
 intBig::intBig(const intBig &ib) : value(ib.value), retenue_negative_en_fin(ib.retenue_negative_en_fin) {}
+intBig::intBig(const QString &v, const quint64 &b) : intBig(intBigB::fromString(v, b)) {}
 
 intBig *intBig::operator=(const qint64 &v)
 {
@@ -89,7 +90,7 @@ intBig intBig::operator*(const qint64 &v) const
     if (v == 0)
         return 0;
     intBig retour;
-    retour.value = QList<qint64>(value.size());
+    retour.value = intBigData(value.size());
     for (int i = 0; i < value.size(); i++)
         retour.value[i] = value.at(i) * v;
     retour.verifBase();
@@ -125,7 +126,7 @@ intBig intBig::operator/(const qint64 &v) const
 
     intBig retour;
     if (v == base) { //optimisé
-        QList<qint64> v2 = value;
+        intBigData v2 = value;
         v2.removeFirst();
         retour.value = v2;
         return retour;
@@ -144,10 +145,10 @@ intBig *intBig::operator/=(const qint64 &v)
 {
     Q_ASSERT(v != 0);
 
-    QList<qint64> t = value;
+    intBigData t = value;
     value = {0};
     if (v == base) { //optimisé
-        QList<qint64> v2 = t;
+        intBigData v2 = t;
         v2.removeFirst();
         value = v2;
         return this;
@@ -278,15 +279,24 @@ intBig intBig::sqrt() const
 bool intBig::isPrime() const
 {
     if (isEmpty()) return false;
-    if (intBigB(*this).toString(2).back() == 0) //division par 2
-    {
-        return false;
-    }
+    // on quelques nombres premiers les plus fréquents
+    if (*this % 2 == 0) return false;
+    if (*this % 3 == 0) return false;
+    if (*this % 5 == 0) return false;
+    if (*this % 7 == 0) return false;
+    if (*this % 13 == 0) return false;
+    if (*this % 17 == 0) return false;
+    if (*this % 19 == 0) return false;
+    if (*this % 23 == 0) return false;
+    if (*this % 29 == 0) return false;
+
+    // ensuite on fait le cycle en faisant un skip des nombres multiples de nombres non premiers les plus fréquents
+    // cycle : de 0 à 588153930-1,   588153930 = 2*3*7*13*17*19*23*29
     intBig sqrtNb = sqrt();
-    qDebug() << "sqrtNb" << sqrtNb.value << value;
-    for (intBig i = 3; i <= sqrtNb; i += 2) { //les pairs ont déja ete testé
-        if (!isPrime(i)) {
-            // optimisation possible : table de nb premiers entre 2-10000
+    int cycle = 7;
+
+    for (intBig i = 7; i <= sqrtNb; i += 2, (cycle += 2) %= 588153930) { //les pairs ont déja ete testé
+        if (cycle % 3 * cycle % 5 * cycle % 7 * cycle % 13 * cycle % 17 * cycle % 19 * cycle % 23 * cycle % 29 && (*this % i).isEmpty()) {
             return false;
         }
     }
@@ -340,12 +350,16 @@ intBig intBig::operator^(quint64 v) const
 long double intBig::toDouble() const
 {
     long double v = 0;
-    for (QList<qint64>::const_reverse_iterator i(value.rbegin()); i != value.rend(); i++) {
+    for (intBigData::const_reverse_iterator i(value.rbegin()); i != value.rend(); i++) {
         v *= base;
         v += *i;
     }
     return v;
 }
+
+//////////////////////////////// intBig temporaire ////////////////////////////////
+
+QString intBig::toString(quint64 base) const { return intBigB(*this).toString(); }
 
 //////////////////////////////// intBig private ////////////////////////////////
 
@@ -367,7 +381,7 @@ void intBig::addAt(int i, qint64 v)
         }
     }
 
-    QList<qint64>::reference r = value[i];
+    intBigData::reference r = value[i];
     r += v;
 
     if (value.size() - 1 == i) {
@@ -388,7 +402,7 @@ void intBig::addAt(int i, qint64 v)
         addAt(i + 1, retenue);
 }
 
-void intBig::addAt(QList<qint64>::iterator i, qint64 v)
+void intBig::addAt(intBigData::iterator i, qint64 v)
 {
     if (v == 0) return;
     if (!i) {
@@ -410,7 +424,7 @@ void intBig::addAt(QList<qint64>::iterator i, qint64 v)
         }
     }
 
-    QList<qint64>::reference r = (*i);
+    intBigData::reference r = (*i);
     r += v;
 
     if (value.end() == i + 1) {
@@ -430,6 +444,8 @@ void intBig::addAt(QList<qint64>::iterator i, qint64 v)
     if (retenue)
         addAt(i + 1, retenue);
 }
+
+intBig::intBig(const intBig::intBigData &v) : value(v), retenue_negative_en_fin(!v.isEmpty() && v.last() < 0) {}
 
 void intBig::setAt(int i, qint64 v)
 {
@@ -462,7 +478,7 @@ void intBig::verifBase()
     if (value.isEmpty())
         return;
     qint64 retenue = 0;
-    for (QList<qint64>::iterator i = value.begin(); i != value.end(); i++) {
+    for (intBigData::iterator i = value.begin(); i != value.end(); i++) {
         // v = *i;
         *i += retenue;
         if (0 <= *i && *i < base) {
@@ -494,9 +510,11 @@ void intBig::reduceValue()
 //////////////////////////////// intBigB ////////////////////////////////
 
 intBigB::intBigB(const intBig &ib) : intBig(ib) {}
-intBigB::intBigB(QString v, const qint64 &base) : intBig(0)
+intBigB::intBigB(const QString &v, const qint64 &base) : intBig(fromString(v, base)) {}
+
+intBig intBigB::fromString(QString v, const quint64 &base)
 {
-    QList<qint64> retour = {};
+    intBigData retour = {};
     bool negative = v.startsWith("-");
     if (negative)
         v.remove("-");
@@ -524,12 +542,13 @@ intBigB::intBigB(QString v, const qint64 &base) : intBig(0)
         else
             retour.append(-1);
     }
-    value = retour;
+
+    return retour;
 }
 
 QString intBigB::toString(qint64 base) const
 {
-    QList<qint64> withBase = toBase(value, intBig::base, base);
+    intBigData withBase = toBase(value, intBig::base, base);
     QString d = "";
     if (value.size() > 0 && value.last() < 0) {
         d = "-"; //negative
@@ -559,9 +578,9 @@ QString intBigB::toString(qint64 base) const
     if (d == "") return "0";
     return d;
 }
-QList<qint64> intBigB::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
+intBig::intBigData intBigB::toBase(intBigData v, qint64 baseFrom, qint64 baseTo)
 {
-    QList<qint64> retour = {};
+    intBigData retour = {};
     if (v.isEmpty())
         return {};
     if (baseFrom == baseTo) //si c les meme base
@@ -575,7 +594,7 @@ QList<qint64> intBigB::toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo)
     int baseCasei = v.size() - 1;
     intBig baseCase2;
 
-    QList<qint64> retourPlus;
+    intBigData retourPlus;
     int i2; // parcourir le retourPlus
     qint64 retenue;
     for (qint64 i = v.size() - 1; i >= 0; i--) {

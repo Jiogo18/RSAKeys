@@ -1,14 +1,9 @@
 #ifndef FENETRE_H
 #define FENETRE_H
 
-#include <QtWidgets>
 #include "RSA.h"
-#include <QMap>
 #include <QRandomGenerator64>
-#include <QRandomGenerator>
-//#include "actuTask.h"
-
-//#include "intBig.h"//test de toQString() pour convertisseurBases, peut retirer après
+#include <QCloseEvent>
 
 namespace Ui {
     class fenetre;
@@ -21,7 +16,7 @@ class fenetre : public QWidget
 public:
     explicit fenetre(QWidget *parent = 0);
     ~fenetre();
-    void closeEvent(QEvent *event);
+    void closeEvent(QCloseEvent *event);
     void stopGenerer(QString resultat);
     void generer();
     void test();

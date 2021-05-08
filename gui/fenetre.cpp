@@ -34,7 +34,7 @@ fenetre::~fenetre()
     delete ui;
 }
 
-void fenetre::closeEvent(QEvent *event)
+void fenetre::closeEvent(QCloseEvent *event)
 {
     Q_UNUSED(event)
     qApp->quit();
@@ -55,13 +55,13 @@ void fenetre::generer()
     ui->GenvoyerCode->setDisabled(true);
     ui->Gresultat->setText("Calcul en cours...");
     //qDebug() << "generer2 from thread" << QThread::currentThread();
-    //QMap<QString, QString> retour(actu->generer(ui->Gpremier1->text(), ui->Gpremier2->text(), ui->GProgressPremiers, ui->GProgressED));
-    QMap<QString, QString> retour(RSA::generer(ui->Gpremier1->text(), ui->Gpremier2->text(), ui->GProgressPremiers, ui->GProgressED, ui->GProgressChiffrement));
+    //RSA::geneOutput retour(actu->generer(ui->Gpremier1->text(), ui->Gpremier2->text(), ui->GProgressPremiers, ui->GProgressED));
+    RSA::geneOutput retour(RSA::generer(ui->Gpremier1->text(), ui->Gpremier2->text(), ui->GProgressPremiers, ui->GProgressED, ui->GProgressChiffrement));
 
-    stopGenerer(retour.value("message"));
-    ui->GN->setText(retour.value("n"));
-    ui->GE->setText(retour.value("e"));
-    ui->GD->setText(retour.value("d"));
+    stopGenerer(retour.message);
+    ui->GN->setText(retour.n);
+    ui->GE->setText(retour.e);
+    ui->GD->setText(retour.d);
 }
 
 void fenetre::test()
@@ -91,12 +91,10 @@ void fenetre::genererRandom()
     ui->GrandomText->clear();
     QCoreApplication::processEvents();
     QRandomGenerator64 rd = QRandomGenerator64::securelySeeded();
-    r += rd.bounded(pow(2, 31));
-    if (r.toVector(2).at(0) == 0) //pair
-        r++;
     while (i < 4) {
-        r = r + 2; //les pair sont forcement non premier (sauf 2 mais pas grave)
-        if (r.isPrime(ui->GProgressPremiers)) {
+        r = min + rd.bounded(pow(2, 31));
+        if (r % 2 == 0) r++; //pair
+        if (r.isPrime()) {
             i++;
             ui->GrandomText->append(r.toString());
             QCoreApplication::processEvents();

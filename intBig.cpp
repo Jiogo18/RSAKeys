@@ -1,620 +1,654 @@
 #include "intBig.h"
 
-intBigP::intBigP(quint64 value)
+//////////////////////////////// intBig ////////////////////////////////
+
+intBig::intBig() : value({}) {}
+intBig::intBig(const qint64 &v) : value({v}) { verifBase(); }
+intBig::intBig(const intBig &ib) : value(ib.value), retenue_negative_en_fin(ib.retenue_negative_en_fin) {}
+intBig::intBig(const QString &v, const quint64 &b) : intBig(intBigB::fromString(v, b)) {}
+
+intBig *intBig::operator=(const qint64 &v)
 {
-    baseP = 2; //on sait pas quoi mettre d'autre
-    operator=(value);
+    value = {v};
+    verifBase();
+    return this;
 }
-intBigP::intBigP(quint64 baseV, quint64 value)
+intBig *intBig::operator=(const intBig &ib)
 {
-    baseP = baseV;
-    operator=(value);
-}
-intBigP::intBigP(QString value, quint64 base)
-{
-    baseP = base;
-    negatifP = false;
-    operator=(fromText(value, base));
-}
-intBigP::intBigP(QVector<quint64> value, quint64 base)
-{
-    baseP = base;
-    negatifP = false;
-    valeurP = value;
-    resize();
-}
-intBigP::intBigP(const intBigP &value)
-{
-    operator=(value);
-}
-intBigP::intBigP(const intBigP *value)
-{
-    operator=(*value);
+    value = ib.value;
+    retenue_negative_en_fin = ib.retenue_negative_en_fin;
+    return this;
 }
 
-void intBigP::resize()
+//////////////////////////////// operator + ////////////////////////////////
+
+intBig intBig::operator+(const qint64 &v) const
 {
-    if (baseP < 2) {
-        qDebug("intBigP.cpp : base à 0 ou 1 resize");
-        setBase(2);
-    }
-    //actualise les cases
-    quint64 i;
-    for (i = size(); i > 0; i--) {
-        if (at(i - 1) != 0)
-            break;
-        valeurP.removeAt(i - 1); //si c'est 0 (vide)
-    }
-
-    i = 0;
-    quint64 retenue = 0;
-    while (i < sizeNNul() || retenue > 0) {
-        while (i >= size())
-            valeurP.append(0);
-        operator[](i) += retenue;
-        retenue = at(i) / base();
-        operator[](i) %= base();
-        i++;
-    }
-}
-
-intBigP intBigP::fromText(QString value, quint64 base) //from text
-{
-    intBigP retour(base, 0);
-    if (value.startsWith("-")) {
-        retour.setNegative(true);
-        value.remove("-");
-    } else
-        retour.setNegative(false);
-    if (base == 10 || base == 16 || base == 64 || base == 100) {
-        for (int i = 0; i < value.size(); i++)
-            retour[i] += strOfBase(base).indexOf(value[value.size() - i - 1]);
-    } else //en ascii, continuer si besoin de faire avec les séparation points
-        for (int i = 0; i < value.size(); i++)
-            retour[i] += value.at(i).unicode();
-
-    retour.resize();
+    intBig retour = *this;
+    retour.addAt(0, v);
+    retour.reduceValue();
     return retour;
 }
-intBigP intBigP::fromVector(QVector<quint64> value, quint64 base)
+intBig *intBig::operator+=(const qint64 &v)
 {
-    intBigP retour(base, 0);
-    retour.setValue(value, base);
+    addAt(0, v);
+    reduceValue();
+    return this;
+}
+intBig intBig::operator+(const intBig &ib) const
+{
+    intBig retour(*this);
+    for (int i = 0; i < ib.value.size(); i++)
+        retour.addAt(i, ib.value.at(i));
+    retour.reduceValue();
     return retour;
 }
-
-void intBigP::setNegative(bool negative) { negatifP = negative; }
-void intBigP::setValue(QVector<quint64> value, quint64 base)
+intBig *intBig::operator+=(const intBig &ib)
 {
-    valeurP = value;
-    baseP = base;
-    resize();
+    for (int i = 0; i < ib.value.size(); i++)
+        addAt(i, ib.value.at(i));
+    reduceValue();
+    return this;
 }
-void intBigP::setBase(quint64 base) { operator=(toBase(base)); }
 
-QString intBigP::toString(quint64 base) const
+//////////////////////////////// operator - ////////////////////////////////
+
+intBig intBig::operator-(const qint64 &v) const
 {
-    QString retour = "";
-    intBigP me2(toBase(base));
-    if (base == 10 || base == 16 || base == 64 || base == 100) {
-        for (quint64 i = me2.size(); i > 0; i--)
-            retour.append(strOfBase(base).at(me2.at(i - 1)));
-    } else
-        for (quint64 i = 0; i < me2.size(); i++)
-            retour.replace(i, 1, QString::number(me2.at(me2.size() - i - 1), base));
-    //en ascii (normalement base ne sert a rien mais sécurité)
-    if (retour.isEmpty())
-        retour = "0";
-    if (isNegative())
-        retour.push_front("-");
+    intBig retour(*this);
+    retour.addAt(0, -v);
+    retour.reduceValue();
     return retour;
 }
-QVector<quint64> intBigP::toVector(quint64 base) const
+intBig *intBig::operator-=(const qint64 &v)
 {
-    if (base == baseP)
-        return valeurP;
-    intBigP retour(toBase(base));
-    if (base != retour.base())
-        qDebug("intBigP.cpp : erreur toBase (toString)");
-    return retour.toVector(base); //rappel de la fonction mais juste pour donner valeurP
+    addAt(0, -v);
+    reduceValue();
+    return this;
 }
-intBigP intBigP::toBase(quint64 base) const
-{ //conversion de base
-    intBigP retour(base, 0);
-    if (intBigP::base() == base) //si c les meme bases
-        return intBigP(valeurP, base);
-    if (isEmpty()) //si c'est vide
+intBig intBig::operator-(const intBig &ib) const
+{
+    intBig retour(*this);
+    for (int i = 0; i < ib.value.size(); i++)
+        retour.addAt(i, -ib.value.at(i));
+    retour.reduceValue();
+    return retour;
+}
+intBig *intBig::operator-=(const intBig &ib)
+{
+    for (int i = 0; i < ib.value.size(); i++)
+        addAt(i, -ib.value.at(i));
+    reduceValue();
+    return this;
+}
+
+//////////////////////////////// operator * ////////////////////////////////
+
+intBig intBig::operator*(const qint64 &v) const
+{
+    if (v == 0)
+        return 0;
+    intBig retour;
+    retour.value = intBigData(value.size());
+    for (int i = 0; i < value.size(); i++)
+        retour.value[i] = value.at(i) * v;
+    retour.verifBase();
+    return retour;
+}
+intBig *intBig::operator*=(const qint64 &v)
+{
+    if (v == 0) {
+        value = {};
+        return this;
+    }
+    for (int i = 0; i < value.size(); i++)
+        value[i] *= v;
+    verifBase();
+    return this;
+}
+intBig intBig::operator*(const intBig &ib) const
+{
+    intBig retour;
+    for (int i = 0, i2; i < ib.value.size(); i++)
+        for (i2 = 0; i2 < value.size(); i2++)
+            retour.addAt(i + i2, ib.value.at(i) * value.at(i2));
+    retour.reduceValue();
+    return retour;
+}
+intBig *intBig::operator*=(const intBig &ib) { return *this = *this * ib; }
+
+//////////////////////////////// operator / ////////////////////////////////
+
+intBig intBig::operator/(const qint64 &v) const
+{
+    Q_ASSERT(v != 0);
+
+    intBig retour;
+    if (v == base) { //optimisé
+        intBigData v2 = value;
+        v2.removeFirst();
+        retour.value = v2;
         return retour;
-
-    intBigP valueCase(base, 0);
-    intBigP baseCase(base, 0);
-    for (quint64 i = sizeNNul(); i > 0; i--) {
-        valueCase = at(i - 1);      //trop lent avec le pow()
-        if (!valueCase.isEmpty()) { //si c'est 0 ça sert a rien
-            baseCase = intBigP::base();
-            baseCase = baseCase ^ (i - 1);
-            retour += baseCase * valueCase;
-        }
     }
-    retour.resize();
+    qint64 currentV = 0;
+    for (int i = value.size() - 1; i >= 0; i--) {
+        currentV += value.at(i);
+        retour.addAt(i, currentV / v);
+        currentV %= v;
+        currentV *= base;
+    }
+    retour.reduceValue();
     return retour;
 }
-bool intBigP::isEmpty() const { return sizeNNul() == 0; }
+intBig *intBig::operator/=(const qint64 &v)
+{
+    Q_ASSERT(v != 0);
 
-quint64 intBigP::sizeNNul() const
-{
-    quint64 size = intBigP::size();
-    while (size > 0 && at(size - 1) == 0)
-        size--; //si il reste des cases et que celle en size-1 est nulle
-    return size;
-}
-
-const quint64 &intBigP::at(const quint64 i) const
-{
-    if (i >= size()) //si existe pas, c'est 0
-        return retourNul;
-    return valeurP.at(i);
-}
-quint64 &intBigP::operator[](const quint64 i)
-{
-    while (i >= size())    //si existe pas, on agrandit
-        valeurP.append(0); //pour quand on set la case avec une new valeur
-    return valeurP[i];
-}
-void intBigP::operator++(int) { operator+=(1); }
-void intBigP::operator--(int) { operator-=(1); }
-intBigP intBigP::sqrt() const
-{
-    if (isNegative()) {
-        qDebug("erreur sqrt, racine d'un nombre négatif");
-        return intBigP(base(), 0);
+    intBigData t = value;
+    value = {0};
+    if (v == base) { //optimisé
+        intBigData v2 = t;
+        v2.removeFirst();
+        value = v2;
+        return this;
     }
-    if (isEmpty())
-        return intBigP(base(), 0); //0²=0
-    if (operator==(1))
-        return intBigP(base(), 1); //1²=1
+    qint64 currentV = 0;
+    for (int i = t.size() - 1; i >= 0; i--) {
+        currentV += t.at(i);
+        addAt(i, currentV / v);
+        currentV %= v;
+        currentV *= base;
+    }
+    reduceValue();
+    return this;
+}
+intBig intBig::operator/(const intBig &denominateur) const
+{
+    intBig numerateur(*this);
+#define coef_division 16
+    // on décompose le calcul numerateur/denominateur :
+    // coef_division = cd
+    // mult = [ mult0 | mult1 | ... | multn ] écrit en base cd
+    // denominateurs = [ den | den * cd | ... | den * cd^n ]
+    // numerateur = mult0*den0 + mult1*den1 + ... + multn*denn
 
-    intBigP min(base(), 1);
-    intBigP retour(min); //commencer par la
-    intBigP fois(operator/(2));
+    // multi appartient à [0;cd[
+    // et entre 2 deni il y a cd
+    // donc un nombre multi*deni est unique
+    // ce qui fait que :
+    //  si numerateur < denin+1
+    //  si numerateur >= deni
+    //  alors multi est le plus grand nombre tel que :
+    //   numerateur >= multi * deni
+    //   (ainsi numerateur < (multi + 1) * deni)
+
+    QList<intBig> denominateurs = {denominateur};
+    while (numerateur >= denominateurs.last()) {
+        denominateurs.append(denominateurs.last() * coef_division);
+    }
+    denominateurs.removeLast();
+
+    //division
+    intBig mult;
+    qint64 current_mult;
+    for (QList<intBig>::const_reverse_iterator i(denominateurs.rbegin()); i != denominateurs.rend(); i++) {
+        current_mult = 0;
+        while (*i <= numerateur) {
+            numerateur -= *i;
+            current_mult++;
+        }
+        mult *= coef_division; //on décale
+        mult += current_mult;  // mult est une valeur en base value_coef
+    }
+    return mult;
+}
+intBig *intBig::operator/=(const intBig &ib) { return *this = *this / ib; }
+
+//////////////////////////////// comparison operators ////////////////////////////////
+
+bool intBig::operator<(const intBig &ib) const
+{
+    if (retenue_negative_en_fin && ib.retenue_negative_en_fin) { //tous les 2 -
+        if (value.size() != ib.value.size())
+            return value.size() > ib.value.size();
+    } else if (retenue_negative_en_fin || ib.retenue_negative_en_fin) { //l'un des 2 -
+        return retenue_negative_en_fin;                                 //this < 0 < ib sinon c'est l'inverse
+    } else {                                                            //tous les 2 +
+        if (value.size() != ib.value.size())
+            return value.size() < ib.value.size();
+    }
+
+    // attention, pdt le debug les reverse_iterator affichent une valeur "current" qui est la précédente
+    // donc il faut pas s'y fier
+    return std::lexicographical_compare(value.rbegin(), value.rend(), ib.value.rbegin(), ib.value.rend());
+}
+
+//////////////////////////////// other operators ////////////////////////////////
+
+void intBig::operator++(int) { operator+=(1); }
+void intBig::operator--(int) { operator-=(1); }
+
+intBig intBig::sqrt() const
+{
+    if (retenue_negative_en_fin) {
+        qDebug("erreur sqrt, racine d'un nombre négatif");
+        return 0;
+    }
+    if (isEmpty()) {
+        return 0; //0²=0
+    }
+    if (*this == 1) {
+        return 1; //1²=1
+    }
+
+    intBig min(1);
+    intBig retour(1);
+    intBig fois = *this / 2;
+#define coef_sqrt 20
     while (fois > 1) {
-        while (operator>=(retour *retour)) { //augmentation au fur et à mesure
+        while (retour * retour <= *this) { //augmentation au fur et à mesure
             min = retour;
-            retour = retour * fois;
+            retour *= fois;
         }
         retour = min;
-        fois /= 20;
+        fois /= coef_sqrt;
     }
 
-    intBigP plus(retour);
+    intBig plus(retour);
     while (plus > 0) {
-        while (operator>=(retour *retour)) { //augmentation au fur et à mesure
+        while (retour * retour <= *this) { //augmentation au fur et à mesure
             min = retour;
             retour += plus;
         }
         retour = min;
-        if (plus < 20 && plus > 1) {
+        if (plus > 1 && plus < coef_sqrt) {
             plus = 1; //+1
         } else
-            plus /= 20;
+            plus /= coef_sqrt;
     }
     //ici retour² est == ou au dessous de this
     return retour;
 }
-bool intBigP::isPrime(QProgressBar *ch) const
+
+bool intBig::isPrime() const
 {
-    if (toVector(2).at(0) == 0)
-        return false;
-    intBigP sqrtNb = sqrt();
-    ch->setMinimum(1);
-    ch->setMaximum(sqrtNb.toString().size());
-    ch->setValue(1);
-    for (intBigP i = 3; i <= sqrtNb; i += 2) { //les pairs ont déja ete testé
-        if (operator%(i) == 0)
+    if (isEmpty()) return false;
+    // on quelques nombres premiers les plus fréquents
+    if (*this % 2 == 0) return false;
+    if (*this % 3 == 0) return false;
+    if (*this % 5 == 0) return false;
+    if (*this % 7 == 0) return false;
+    if (*this % 13 == 0) return false;
+    if (*this % 17 == 0) return false;
+    if (*this % 19 == 0) return false;
+    if (*this % 23 == 0) return false;
+    if (*this % 29 == 0) return false;
+
+    // ensuite on fait le cycle en faisant un skip des nombres multiples de nombres non premiers les plus fréquents
+    // cycle : de 0 à 588153930-1,   588153930 = 2*3*7*13*17*19*23*29
+    intBig sqrtNb = sqrt();
+    int cycle = 7;
+
+    for (intBig i = 7; i <= sqrtNb; i += 2, (cycle += 2) %= 588153930) { //les pairs ont déja ete testé
+        if (cycle % 3 * cycle % 5 * cycle % 7 * cycle % 13 * cycle % 17 * cycle % 19 * cycle % 23 * cycle % 29 && (*this % i).isEmpty()) {
             return false;
-        ch->setValue(i.toString().size());
-        QCoreApplication::processEvents();
+        }
     }
-    ch->setValue(ch->maximum());
     return true;
 }
 
-intBigP intBigP::operator^(intBigP v) const
+bool intBig::isPrime(intBig b) const
 {
-    intBigP retour(base(), 1);
-    intBigP retour2(*this);
+    if (*this < b) return b.isPrime(*this);
+    intBig temp, a(*this);
+
+    /*while(nb2>0)
+    {
+        temp = nb2%nb1;
+        nb1 = nb2;
+        nb2 = temp;
+    }
+    return nb1 == 1;//if 1, they are prime else nb1 = PGCD*/
+    //PGCD scratch
+
+    temp = a;
+    while (b > 0) {
+        //while(temp>=b)
+        //temp -= b;
+        temp %= b; //plus rapide
+        a = b;
+        b = temp;
+        temp = a;
+    }
+    return temp == 1; //temp== pgcd et si c'est 1, ils sont premiers entre eux
+}
+
+intBig intBig::operator^(quint64 v) const
+{
+    intBig retour = 1;
+    intBig square;
+    quint64 i;
     while (v > 0) {
-        retour *= retour2; //arranger avec prog calculette (coder-decoder)
-        v--;
+        square = *this;
+        for (i = 1; i * 2 <= v; i *= 2) {
+            square *= square;
+        }
+        // square = this^(2i)
+        retour *= square;
+        v -= i;
     }
+    // this^n = this * this * this ... v fois = this^1 * this^2 * this^4 * this^8 * ... * this^(2^i) * ...
     return retour;
 }
-intBigP intBigP::operator^(quint64 v) const
+
+long double intBig::toDouble() const
 {
-    intBigP retour(base(), 1);
-    intBigP retour2(*this);
-    while (v > 0) {
-        retour *= retour2; //arranger avec prog calculette (coder-decoder)
-        v--;
+    long double v = 0;
+    for (intBigData::const_reverse_iterator i(value.rbegin()); i != value.rend(); i++) {
+        v *= base;
+        v += *i;
     }
-    return retour;
+    return v;
 }
-intBigP intBigP::operator%(intBigP v) const
+
+//////////////////////////////// intBig temporaire ////////////////////////////////
+
+QString intBig::toString(quint64 base) const { return intBigB(*this).toString(base); }
+
+//////////////////////////////// intBig private ////////////////////////////////
+
+void intBig::addAt(int i, qint64 v)
 {
-    intBigP retour(base(), 0);
-    if (v == 1 || v == 0) //ça donnera 0 (avec v==0 normalement c'est non défini mais c'est généralement %0.1)
-        return retour;
-    intBigP v2(v);
-    if (base() != v.base())
-        v2 = v.toBase(base());
-    retour = operator-((operator/(v2)) * v2);
-    while (retour >= v2) //compense l'opération en haut, normalement pas utile
-    {
-        qDebug() << "intBig : erreur %" << toString() << v2.toString() << "donne" << retour.toString();
-        retour -= v2; //(algo de modulo de base mais trop lent donc juste pour resize correctement)
-    }
-    while (retour.isNegative() && retour < 0)
-        retour += v2; //si il est encore négatif, on le remonte d'un (ex:-9%4 = -1 => 3)
-    retour.resize();
-    return retour;
-}
-intBigP intBigP::operator*(const intBigP &v) const
-{
-    intBigP retour(base(), 0);
-    intBigP v2(v);
-    if (base() != v.base())
-        v2 = v.toBase(base());
-    for (quint64 i = 0; i < size(); i++) {
-        for (quint64 i2 = 0; i2 < v2.size(); i2++) {
-            quint64 mult = at(i) * v2.at(i2);
-            quint64 retenueCase = 0;
-            while (mult > 0) {
-                retour[i + i2 + retenueCase] += mult % base();
-                mult /= base(); //restant
-                retenueCase++;
-            }
+    //return addAt(value.begin() + i, v);
+    if (v == 0) return;
+
+    Q_ASSERT(value.size() < 10000);
+
+    if (retenue_negative_en_fin) {
+        while (value.size() <= i) {
+            value.last() += base;
+            value.append(-1);
+        }
+    } else {
+        if (value.size() <= i) {
+            value.insert(value.size(), i - value.size() + 1, 0);
         }
     }
-    retour.setNegative(isNegative() != v2.isNegative());
-    retour.resize();
-    return retour;
-}
-intBigP intBigP::operator*(quint64 v) const
-{
-    //convertir en base v et ensuite ajouter une case
-    QVector<quint64> retour = toVector(v);
-    retour.insert(0, 0);               //ajoute au début
-    intBigP retour2(retour, v);        //on le repasse en intBigP
-    retour2.setNegative(isNegative()); //il y a qu moi qui peut etre -
-    retour2.setBase(base());
-    return retour2;
-}
-intBigP intBigP::operator/(const intBigP &v) const
-{ //division
-    intBigP retour(base(), 0);
-    if (isEmpty()) //forcement 0
-        return retour;
-    if (v.isEmpty()) //1/0
-    {
-        qDebug("%s", QString("erreur division, le dénominateur vaut 0 " + v.toString()).toStdString().c_str());
-        return retour;
-    }
 
-    intBigP v2(v);
-    if (base() != v.base())
-        v2 = v.toBase(base());
-    //quint64 i=sizeNNul();//le plus grand quint64
-    //quint64 i2=v2.sizeNNul();//le plus grand quint64
-    if (operator<(v2)) { //si c plus grand la division fera 0.xxx
-        //si seulement un seul est -, c'est -
-        retour.setNegative(isNegative() != v2.isNegative());
-        return retour;
-    }
+    intBigData::reference r = value[i];
+    r += v;
 
-    intBigP plus(base(), 0);
-    intBigP min(base(), 0);
-    plus[sizeNNul() - 1] = at(sizeNNul() - 1);
-    retour = min;
-    while (plus > 0) {
-        intBigP retour2(retour * v2);
-        intBigP plus2(v2 * plus); //plus optimisé
-        while (operator>=(retour2)) {
-            min = retour;
-            //retour[plus.sizeNNul()-1] += plus[plus.sizeNNul()-1];
-            retour += plus;
-            retour2 += plus2;
-        }
-        retour = min;
-
-        if (plus.sizeNNul() > 1 || plus >= 20) {
-            quint64 i3 = plus.sizeNNul();
-            if (plus[i3 - 1] >= 20 || i3 == 1) {
-                plus[i3 - 1] /= 20; //divise juste le quint64 de la case
-            } else {
-                plus[i3 - 2] += (base() * plus[i3 - 1]) / 20;
-                plus[i3 - 1] = 0;
-            }
-        } else if (plus == 1) {
-            plus = 0; //si on est déja en +1 on s'arrete
-        } else        //faire du +1
-            plus = 1;
-    }
-    //si seulement un seul est -, c'est -
-    retour.setNegative(isNegative() != v2.isNegative());
-    return retour;
-}
-intBigP intBigP::operator/(quint64 v) const
-{
-    //convertir en base v et ensutie retirer la premiere case
-    QVector<quint64> retour = toVector(v);
-    retour.pop_front();         //retire le premier
-    intBigP retour2(retour, v); //on le repasse en intBigP
-
-    retour2.setNegative(isNegative()); //il y a qu moi qui peut etre -
-    retour2.setBase(base());
-
-    return retour2;
-}
-intBigP intBigP::operator+(intBigP v) const
-{
-    if (isNegative() && v.isNegative()) { // - "+" - = -(+ "+" +)
-        intBigP t(valeurP, base());
-        t.setNegative(!isNegative());
-        v.setNegative(!v.isNegative());
-        t += v;
-        t.setNegative(!t.isNegative()); //change d'etat
-        return t;
-    }
-    if (isNegative()) //- "+" + = + "-" +
-    {
-        intBigP t(valeurP, base());
-        t.setNegative(!isNegative());
-        return v - t;
-    }
-    if (v.isNegative()) //+ "+" - = + "-" +
-    {
-        v.setNegative(!v.isNegative());
-        return operator-(v);
-    }
-    intBigP v2(v);
-    if (base() != v.base())
-        v2 = v.toBase(base());
-    intBigP retour(base(), 0);
-    for (quint64 i = 0; i < sizeNNul() || i < v2.sizeNNul() || i < retour.sizeNNul(); i++) {
-        retour[i] += at(i) + v2.at(i);
-        if (retour[i] >= base()) //si c trop grand
-        {
-            retour[i + 1] += retour.at(i) / base(); //retenue
-            retour[i] %= base();                    //retire les retenues
-        }
-    }
-    return retour;
-}
-intBigP intBigP::operator+(quint64 v) const
-{
-    intBigP retour(this);
-    retour[0] += v;
-    retour.resize();
-    return retour;
-}
-intBigP intBigP::operator-(intBigP v) const
-{
-    if (isNegative() || (isNegative() && v.isNegative())) { //inverser ou - "-" - = -(+ "-" +)
-        intBigP t(valeurP, base());
-        t.setNegative(!isNegative());
-        v.setNegative(!v.isNegative()); //on le retourne
-        t -= v;
-        t.setNegative(!t.isNegative());
-        return t;
-    }
-    if (v.isNegative()) { //+ "-" - = + "+" +
-        v.setNegative(!v.isNegative());
-        return operator+(v);
-    }
-
-    intBigP v2(v);
-    if (base() != v.base())
-        v2 = v.toBase(base());
-    if (operator<(v2)) { //si v est plus grand  + "-" + = -(- "-" -) =-(- "+" +)= -(+"-"+)
-        intBigP t(valeurP, base());
-        t = v2 - t;
-        t.setNegative(!t.isNegative());
-        return t;
-    }
-    intBigP retour(valeurP, base());
-    quint64 retenue = 0;
-    for (quint64 i = 0; i < sizeNNul(); i++) { //je suis forcement plus grand donc size() est le max
-        if (retour.at(i) < v2.at(i) + retenue) {
-            quint64 retenueT = 0;
-            while (retour.at(i) < v2.at(i) + retenue) {
-                retour[i] += base();
-                retenueT++;
-            }
-            retour[i] -= (v2.at(i) + retenue);
-            retenue = retenueT;
+    if (value.size() - 1 == i) {
+        // dernière valeur
+        if (r < 0) {
+            // et on est à -1
+            retenue_negative_en_fin = true;
+            return; // pas de retenue à passer
         } else {
-            retour[i] -= (v2.at(i) + retenue);
-            retenue = 0;
+            // même si on a une retenue on sera forcément positif après
+            retenue_negative_en_fin = false;
         }
     }
-    return retour;
+
+    qint64 retenue = qFloor((double)r / base);
+    r -= retenue * base; // modulo
+    if (retenue)
+        addAt(i + 1, retenue);
 }
-intBigP intBigP::operator-(quint64 v) const
+
+void intBig::addAt(intBigData::iterator i, qint64 v)
 {
-    if (isNegative()) {               //si je suis negatif
-        intBigP t(valeurP, base());   //     - "-" +
-        t.setNegative(!isNegative()); //=> -(+ "+" -)
-        t = t - v;                    //=> -(+ "-" +)
-        t.setNegative(!t.isNegative());
-        return t;
+    if (v == 0) return;
+    if (!i) {
+        value = {0};
+        i = value.begin();
     }
-    intBigP retour(valeurP, base());
-    quint64 retenue = 0;
-    for (quint64 i = 0; i < size(); i--) {
-        if (retour.at(i) < v + retenue) {
-            quint64 retenueT = 0;
-            while (retour.at(i) < v + retenue) {
-                retour[i] += base();
-                retenueT++;
-            }
-            retour[i] -= (v + retenue);
-            v = 0; //ici un quint64 on a du le vider entièrement
-            retenue = retenueT;
+    Q_ASSERT(value.size() < 10000);
+
+    if (retenue_negative_en_fin) {
+        while (value.end() <= i) {
+            value.last() += base;
+            value.append(-1);
+        }
+    } else {
+        while (value.end() <= i) {
+            //value.insert(value.end(), 0);
+            value.append(0);
+            // TODO: ça marche ça?
+        }
+    }
+
+    intBigData::reference r = (*i);
+    r += v;
+
+    if (value.end() == i + 1) {
+        // dernière valeur
+        if (r < 0) {
+            // et on est à -1
+            retenue_negative_en_fin = true;
+            return; // pas de retenue à passer
         } else {
-            retour[i] -= (v + retenue);
-            retenue = 0;
-            v = 0; //pareil
-            break; //si on arrive la c'est surrement parce que il y a plus rien
+            // même si on a une retenue on sera forcément positif après
+            retenue_negative_en_fin = false;
         }
     }
+
+    qint64 retenue = qFloor((double)r / base);
+    r -= retenue * base; // modulo
+    if (retenue)
+        addAt(i + 1, retenue);
+}
+
+intBig::intBig(const intBig::intBigData &v) : value(v), retenue_negative_en_fin(!v.isEmpty() && v.last() < 0) {}
+
+void intBig::setAt(int i, qint64 v)
+{
+    if (value.size() <= i) {
+        if (retenue_negative_en_fin) {
+            // TODO : alternative ?
+            // en tout cas setAt est tellement pas appelé que c'est dificile de test
+            //int nb_de_base = - value.last() / base;
+            //qint64 last_target = value.last() + nb_de_base * base;
+            //int v_target = v - nb_de_base;
+
+            while (value.last() < 0) {
+                v -= 1;
+                value.last() += base;
+            }
+
+            retenue_negative_en_fin = false;
+        }
+        if (value.size() <= i)
+            value.insert(value.size(), i - value.size() + 1, 0);
+    }
+    value[i] = 0;
+    addAt(i, v);
+}
+
+void intBig::verifBase()
+{
+    if (value.isEmpty())
+        return;
+    qint64 retenue = 0;
+    for (intBigData::iterator i = value.begin(); i != value.end(); i++) {
+        // v = *i;
+        *i += retenue;
+        if (0 <= *i && *i < base) {
+            retenue = 0;
+            continue;
+        }
+        if (*i < 0) {
+            if (*i == -1 && i == value.end() - 1) // si c'est -1 on ignore aussi
+                continue;
+            retenue = *i / base + 1;
+        } else {
+            retenue = *i / base;
+        }
+        *i -= retenue * base;       // modulo base
+        if (i + 1 == value.end()) { // et qu'il y a une retenue
+            value.append(0);
+            i = value.end();
+            i -= 2;
+        }
+    }
+    retenue_negative_en_fin = value.back() < 0;
+}
+void intBig::reduceValue()
+{
+    while (!value.isEmpty() && value.last() == 0)
+        value.removeLast();
+}
+
+//////////////////////////////// intBigB ////////////////////////////////
+
+intBigB::intBigB(const intBig &ib) : intBig(ib) {}
+intBigB::intBigB(const QString &v, const qint64 &base) : intBig(fromString(v, base)) {}
+
+intBig intBigB::fromString(QString v, const quint64 &base)
+{
+    intBigData retour = {};
+    bool negative = v.startsWith("-");
+    if (negative)
+        v.remove("-");
+    if (base == 10 || base == 16 || base == 36) {
+        while (!v.isEmpty()) {
+            retour.append(valueOfBase(QString(v.back()), base));
+            v.remove(v.size() - 1, 1);
+        }
+    } else {
+        QString v2 = "";
+        while (!v.isEmpty()) {
+            while (!v.isEmpty() && v.back() != '|') {
+                v2 += v.back();
+                v.remove(v.size() - 1, 1);
+            }
+            if (!v.isEmpty()) //le |
+                v.remove(v.size() - 1, 1);
+            retour.append(valueOfBase(v2, base));
+        }
+    }
+    retour = toBase(retour, base, intBig::base);
+    if (negative) {
+        if (retour.size() > 0 && retour.last() == 1)
+            retour.last() = -1;
+        else
+            retour.append(-1);
+    }
+
     return retour;
 }
 
-void intBigP::operator%=(const intBigP &v) { operator=(operator%(v)); }
-void intBigP::operator%=(quint64 v) { operator=(operator%(v)); }
-void intBigP::operator*=(const intBigP &v) { operator=(operator*(v)); }
-void intBigP::operator*=(quint64 v) { operator=(operator*(v)); }
-void intBigP::operator/=(const intBigP &v) { operator=(operator/(v)); }
-void intBigP::operator/=(quint64 v) { operator=(operator/(v)); }
-void intBigP::operator+=(const intBigP &v) { operator=(operator+(v)); }
-void intBigP::operator+=(quint64 v) { operator=(operator+(v)); }
-void intBigP::operator-=(const intBigP &v) { operator=(operator-(v)); }
-void intBigP::operator-=(quint64 v) { operator=(operator-(v)); }
-
-bool intBigP::operator!=(const intBigP &v) const
+QString intBigB::toString(qint64 base) const
 {
-    return !operator==(v);
-    /*if(isNegative() != v.isNegative())
-        return true;
-    intBigP v2(v);
-    if(base() != v.base())
-        v2.setBase(base());
-    if(sizeNNul() != v2.sizeNNul())
-        return true;
-    for(quint64 i=0; i<sizeNNul(); i++)
-        if(at(i) != v2.at(i))//si ils sont diff à un moment, c'est bon
-            return true;
-    return false;//si ils sont diff nul part, ils sont pareils*/
-}
-bool intBigP::operator!=(quint64 v) const { return operator!=(intBigP(base(), v)); }
-bool intBigP::operator==(const intBigP &v) const
-{
-    if (isNegative() != v.isNegative())
-        return false;
-    intBigP v2(v);
-    if (base() != v.base())
-        v2.setBase(base());
-    if (sizeNNul() != v2.sizeNNul())
-        return false;
-    for (quint64 i = 0; i < sizeNNul(); i++)
-        if (at(i) != v2.at(i))
-            return false;
-    return true;
-}
-bool intBigP::operator==(quint64 v) const { return operator==(intBigP(base(), v)); }
-bool intBigP::operator<(const intBigP &v) const
-{
-    if (isNegative() != v.isNegative()) {
-        return isNegative() && !v.isNegative();
-    }
-    intBigP v2(v);
-    if (base() != v.base())
-        v2.setBase(base());
-    if (sizeNNul() != v2.sizeNNul()) {
-        if (isNegative() && v2.isNegative()) {
-            return !(sizeNNul() < v2.sizeNNul());
-        } else
-            return sizeNNul() < v2.sizeNNul();
-    }
-
-    for (quint64 i = sizeNNul(); i > 0; i--) {
-        if (at(i - 1) != v2.at(i - 1)) {
-            if (isNegative() && v2.isNegative()) {
-                return !(at(i - 1) < v2.at(i - 1));
-            } else
-                return at(i - 1) < v2.at(i - 1);
+    intBigData withBase = toBase(value, intBig::base, base);
+    QString d = "";
+    if (value.size() > 0 && value.last() < 0) {
+        d = "-"; //negative
+        qint64 retenue = 0;
+        int baseSize = withBase.size();
+        for (int i = 0; i < withBase.size() || retenue != 0; i++) {
+            if (withBase.size() <= i)
+                withBase.insert(withBase.size(), i - withBase.size() + 1, 0);
+            else
+                withBase[i] *= -1;
+            withBase[i] += retenue;
+            if (withBase.at(i) < 0) {
+                withBase[i] += base;
+                retenue--;
+                if (i + 100 > baseSize) { //bug on a ajouté trop de cases
+                    qDebug() << "intBigB::toString ERROR it is a positive array ?";
+                    break;
+                }
+            }
         }
     }
-    return false; //est egal
-}
-bool intBigP::operator<(quint64 v) const { return operator<(intBigP(base(), v)); }
-bool intBigP::operator<=(const intBigP &v) const { return operator<(v) || operator==(v); }
-bool intBigP::operator<=(quint64 v) const { return operator<=(intBigP(base(), v)); }
-bool intBigP::operator>(const intBigP &v) const { return !operator<=(v); }
-bool intBigP::operator>(quint64 v) const { return operator>(intBigP(base(), v)); }
-bool intBigP::operator>=(const intBigP &v) const { return !operator<(v); }
-bool intBigP::operator>=(quint64 v) const { return operator>=(intBigP(base(), v)); }
-
-void intBigP::operator=(const intBigP &v)
-{
-    baseP = v.base();
-    if (baseP < 2) {
-        qDebug("intBigP : base à 0 ou 1 (operator =)");
-        baseP = 2;
+    for (int i = withBase.size(); i > 0; i--) {
+        if (i != withBase.size() && base > 10 && (base != 16 && base != 36))
+            d += "|";
+        d += valueOfBase(withBase.at(i - 1), base);
     }
-    valeurP = v.toVector(baseP);
-    negatifP = v.isNegative();
-    resize();
+    if (d == "") return "0";
+    return d;
 }
-void intBigP::operator=(quint64 v)
+intBig::intBigData intBigB::toBase(intBigData v, qint64 baseFrom, qint64 baseTo)
 {
-    valeurP.clear();
-    negatifP = false;
-    operator[](0) = v;
-    resize();
-}
+    intBigData retour = {};
+    if (v.isEmpty())
+        return {};
+    if (baseFrom == baseTo) //si c les meme base
+        return v;
 
-const QString intBigP::strOfBase(quint64 base)
-{
-    switch (base) {
-    case 10:
-        return "0123456789";
-    case 16:
-        return "0123456789abcdef";
-    case 64:
-        return "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ&";
-    case 100:
-        return "☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼ !e#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[f]^_`abcd";
-    default:
-        return "";
+    QVector<intBig> baseCase = {1};
+    for (int i = 0; i < v.size(); i++) {
+        // = baseFrom^i (valeur de la case si remplie avec 1)
+        baseCase.append(baseCase.last() * baseFrom);
     }
-}
+    int baseCasei = v.size() - 1;
+    intBig baseCase2;
 
-QString intBigP::debug() const
-{
-    QString retour = "Base:" + QString::number(base()) + ", ";
-    if (isNegative())
-        retour += "-";
-    retour += "{";
-    for (quint64 i = 0; i < size(); i++) {
-        retour += QString::number(at(i));
-        if (i + 1 < size())
-            retour += ", ";
+    intBigData retourPlus;
+    int i2; // parcourir le retourPlus
+    qint64 retenue;
+    for (qint64 i = v.size() - 1; i >= 0; i--) {
+
+        baseCase2 = baseCase.at(baseCasei);
+        baseCasei--;
+        retourPlus = {};
+        while (baseCase2 > 0) {
+            retourPlus.append(baseCase2 % baseTo); // toujours qu'une case à ajouter
+            baseCase2 /= baseTo;
+        }
+        //on fait: intBigB baseCase(intBigB(intBig::base, base)^i);
+        //on fait: retour += pow(baseintBig::base, ) * value.at(i);
+        retenue = 0;
+        for (i2 = 0; i2 < retourPlus.size() || retenue != 0; i2++) {
+            if (retour.size() <= i2)
+                retour.append(0);
+            if (i2 < retourPlus.size())
+                retour[i2] += retourPlus.at(i2) * v.at(i);
+            retour[i2] += retenue;
+            retenue = retour[i2] / baseTo;
+            retour[i2] %= baseTo;
+        }
     }
-    return "intBigP { " + retour + "} }";
+
+    return retour;
 }
 
-intBig::intBig(quint64 value) : intBigP(baseP, value)
-{}
-
-intBig::intBig(QString value, quint64 base) : intBigP(value, base)
+QString intBigB::valueOfBase(const qint64 &v, qint64 base)
 {
-    setBase(baseP);
+    try {
+        switch (base) {
+        case 16:
+            return QString("0123456789ABCDEF").at(v);
+        case 36:
+            return QString("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ").at(v);
+        }
+    } catch (const std::exception &error) {
+    }
+    return QString::number(v);
+}
+qint64 intBigB::valueOfBase(const QString &v, qint64 base)
+{
+    int retour = -1;
+    try {
+        switch (base) {
+        case 16:
+            retour = QString("0123456789ABCDEF").indexOf(v);
+            break;
+        case 36:
+            retour = QString("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ").indexOf(v);
+            break;
+        }
+    } catch (const std::exception &error) {
+    }
+    if (retour != -1)
+        return retour;
+    return v.toLongLong();
 }
 
-intBig::intBig(QVector<quint64> value, quint64 base) : intBigP(value, base)
+QDebug operator<<(QDebug debug, const intBig &ib)
 {
-    setBase(baseP);
-}
-
-intBig::intBig(const intBig &value) : intBigP(value.toVector(baseP), baseP)
-{
-    negatifP = value.isNegative();
-    resize();
-}
-
-intBig::intBig(const intBigP &value) : intBigP(value.toBase(baseP))
-{
-    negatifP = value.isNegative();
-    resize();
+    debug << intBigB(ib).toString().toStdString().c_str();
+    return debug;
 }

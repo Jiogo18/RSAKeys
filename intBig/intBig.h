@@ -13,6 +13,7 @@ public:
     intBig();
     intBig(const qint64 &v);
     intBig(const intBig &ib);
+    intBig(const QString &v, const quint64 &b);
 
     intBig *operator=(const qint64 &v);
     intBig *operator=(const intBig &ib);
@@ -61,12 +62,19 @@ public:
     bool isNul() const;
     bool isNegative() const;
 
+    QString toString(quint64 base) const;
+
 protected:
+    using intBigData = QList<qint64>;
+    intBig(const intBigData &v);
+    friend class intBigB;
+
     static const qint64 base = 2147483648; //2^31
-    QList<qint64> value;                   // back() (ou last) gère le signe, si c'est négatif ou non
+    intBigData value;                      // back() (ou last) gère le signe, si c'est négatif ou non
     bool retenue_negative_en_fin = false;  //si retenue négative sur la derniere case
+
     void addAt(int i, qint64 v);
-    void addAt(QList<qint64>::iterator i, qint64 v);
+    void addAt(intBigData::iterator i, qint64 v);
 
 private:
     void setAt(int i, qint64 v);
@@ -95,7 +103,7 @@ inline intBig *intBig::operator%=(const intBig &ib) { return *this -= (*this / i
 
 inline bool intBig::isEmpty() const
 {
-    return value == QList<qint64>(); // == { 0, 0, ... }
+    return value == intBigData(); // == { 0, 0, ... }
 }
 
 inline bool intBig::isNul() const { return isEmpty(); }
@@ -111,12 +119,13 @@ class intBigB : public intBig
     //string en base spé => intBig
 public:
     intBigB(const intBig &ib);
-    intBigB(QString v, const qint64 &base);
+    intBigB(const QString &v, const qint64 &base);
 
+    static intBig fromString(QString v, const quint64 &base);
     QString toString(qint64 base = 10) const;
 
 private:
-    static QList<qint64> toBase(QList<qint64> v, qint64 baseFrom, qint64 baseTo);
+    static intBigData toBase(intBigData v, qint64 baseFrom, qint64 baseTo);
     static QString valueOfBase(const qint64 &v, qint64 base);
     static qint64 valueOfBase(const QString &v, qint64 base);
 };
