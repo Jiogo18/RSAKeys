@@ -201,8 +201,13 @@ void fenetre::crackerMsg()
     intBig N(ui->BM_N->text(), 10);
     intBig D(ui->BM_D->text(), 10);
     intBig D2 = D ^ tab.size(); //augmente plus vite pour la partie 2
-    tab[0] = M;                 //la premiere case
-    intBig i;                   //pas bien pour les placements ds tab (il faut un quint64 max) mais après c'est utile
+    if (D2.toDouble() > 1e4932L) {
+        ui->BM_log->append("La taille du tableau est trop grande, réduisez la ou abandonnez");
+        ui->BM_bCraquer->setEnabled(true);
+        return;
+    }
+    tab[0] = M; //la premiere case
+    intBig i;   //pas bien pour les placements ds tab (il faut un quint64 max) mais après c'est utile
     //quint64 iEcart=0;
     bool trouve = false;
     quint64 start = 0;
@@ -250,6 +255,7 @@ void fenetre::crackerMsg()
     //msg trouvé !
     ui->BM_MCasse->setText(newM.toString());
     ui->BM_log->append("Message trouvé en " + QString::number(QDateTime::currentMSecsSinceEpoch() - startCrack) + " msec");
+    ui->BMProgressEstime->setValue(ui->BMProgressEstime->maximum());
 
     ui->BM_bCraquer->setEnabled(true);
 }

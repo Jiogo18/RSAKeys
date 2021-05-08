@@ -280,22 +280,22 @@ bool intBig::isPrime() const
 {
     if (isEmpty()) return false;
     // on quelques nombres premiers les plus fréquents
-    if (*this % 2 == 0) return false;
-    if (*this % 3 == 0) return false;
-    if (*this % 5 == 0) return false;
-    if (*this % 7 == 0) return false;
-    if (*this % 13 == 0) return false;
-    if (*this % 17 == 0) return false;
-    if (*this % 19 == 0) return false;
-    if (*this % 23 == 0) return false;
-    if (*this % 29 == 0) return false;
+    if (*this != 2 && *this % 2 == 0) return false;
+    if (*this != 3 && *this % 3 == 0) return false;
+    if (*this != 5 && *this % 5 == 0) return false;
+    if (*this != 7 && *this % 7 == 0) return false;
+    if (*this != 13 && *this % 13 == 0) return false;
+    if (*this != 17 && *this % 17 == 0) return false;
+    if (*this != 19 && *this % 19 == 0) return false;
+    if (*this != 23 && *this % 23 == 0) return false;
+    if (*this != 29 && *this % 29 == 0) return false;
 
     // ensuite on fait le cycle en faisant un skip des nombres multiples de nombres non premiers les plus fréquents
     // cycle : de 0 à 588153930-1,   588153930 = 2*3*7*13*17*19*23*29
     intBig sqrtNb = sqrt();
-    int cycle = 7;
+    int cycle = 31;
 
-    for (intBig i = 7; i <= sqrtNb; i += 2, (cycle += 2) %= 588153930) { //les pairs ont déja ete testé
+    for (intBig i = 31; i <= sqrtNb; i += 2, (cycle += 2) %= 588153930) { //les pairs ont déja ete testé
         if (cycle % 3 * cycle % 5 * cycle % 7 * cycle % 13 * cycle % 17 * cycle % 19 * cycle % 23 * cycle % 29 && (*this % i).isEmpty()) {
             return false;
         }
@@ -359,7 +359,7 @@ long double intBig::toDouble() const
 
 //////////////////////////////// intBig temporaire ////////////////////////////////
 
-QString intBig::toString(quint64 base) const { return intBigB(*this).toString(); }
+QString intBig::toString(quint64 base) const { return intBigB(*this).toString(base); }
 
 //////////////////////////////// intBig private ////////////////////////////////
 
