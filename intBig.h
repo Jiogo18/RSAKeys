@@ -57,6 +57,7 @@ public:
     bool isPrime(intBig b) const;
     intBig operator^(quint64 v) const;
     long double toDouble() const;
+    long long int toULongLong() const;
 
     bool isEmpty() const;
     bool isNul() const;

@@ -5,7 +5,7 @@ RSA::RSA() {}
 RSA::geneOutput RSA::generer(QString nbPremier1, QString nbPremier2, QProgressBar *ch1, QProgressBar *ch2, QProgressBar *ch3)
 {
     //qDebug() << "RSA::generer from thread" << QThread::currentThread();
-    quint64 start = QDateTime::currentMSecsSinceEpoch();
+    qint64 start = debugTime();
     ch1->setMaximum(99);
     ch1->setValue(0); //progression des 2 isPrime
     ch2->setMaximum(99);
@@ -48,7 +48,7 @@ RSA::geneOutput RSA::generer(QString nbPremier1, QString nbPremier2, QProgressBa
         return retour;
     }
     ch1->setValue(92);
-    debug("les 2 nombres sont validés en " + QString::number(QDateTime::currentMSecsSinceEpoch() - start) + "ms");
+    debug("les 2 nombres sont validés en " + QString::number(debugTime() - start) + "ms");
     debug("Les nombres donnés sont bons, création de n, e et d.");
 
     intBig n(p * q);
@@ -77,7 +77,7 @@ RSA::geneOutput RSA::generer(QString nbPremier1, QString nbPremier2, QProgressBa
                 d = InverseBModuloN(e, phi);
 
                 if (d >= 2)
-                    if (chiffrer(n / 2, d, n, ch3) != n / 2)
+                    if (chiffrer(n / 2, d, n) != n / 2)
                     //if(chiffrer(n/2, d, n)!=chiffrer(n/2, e, n))//si ça donne un truc à boucle (M^E%N = M^D%N...)
                     {
                         trouve = true;
@@ -98,8 +98,8 @@ RSA::geneOutput RSA::generer(QString nbPremier1, QString nbPremier2, QProgressBa
             e = listeE->at(random64(0, listeE->size()));
             d = InverseBModuloN(e, phi);
 
-            if (d >= 2)                                  //si ça donne un truc à boucle (M^E%N = M^D%N...)
-                if (chiffrer(n / 2, d, n, ch3) != n / 2) //on pourrait test avec e aussi
+            if (d >= 2)                             //si ça donne un truc à boucle (M^E%N = M^D%N...)
+                if (chiffrer(n / 2, d, n) != n / 2) //on pourrait test avec e aussi
                 //if(chiffrer(n/2, d, n)!=chiffrer(n/2, e, n))//on doit garder ça?
                 { //sur un p=13 et q=17, il y a pas asser de choix
                     trouve = true;
@@ -179,7 +179,7 @@ RSA::geneOutput RSA::generer(QString nbPremier1, QString nbPremier2, QProgressBa
         return retour;
     }
 
-    retour.message = "Calcul terminé en " + QString::number(QDateTime::currentMSecsSinceEpoch() - start) + " msec.";
+    retour.message = "Calcul terminé en " + QString::number(debugTime() - start) + " msec.";
     retour.termine = "1";
     debug(retour.message);
     return retour;
@@ -250,7 +250,9 @@ intBig RSA::InverseBModuloN(intBig b, intBig n)
         return t;
 }
 
-intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n, QProgressBar *ch)
+QList<intBig> deux_puiss_i = {1};
+
+intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n)
 {
     if (msg >= n)
         return msg;
@@ -275,7 +277,7 @@ intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n, QProgressBar *ch)
         QCoreApplication::processEvents();
 
     } while(!d_e2_1.isEmpty());
-    qDebug(QString("retour chiffrement:"+retour_1.toString()+" en "+QString::number(QDateTime::currentMSecsSinceEpoch()-start.toMSecsSinceEpoch())+" msec").toStdString().c_str());
+    qDebug(QString("retour chiffrement:"+retour_1.toString()+" en "+QString::number(debugTime()-start.toMSecsSinceEpoch())+" msec").toStdString().c_str());
     //return a;*/
     /*msg^d_e % n
      * =((msg%n+msg)%n+msg)%n
@@ -284,34 +286,27 @@ intBig RSA::chiffrer(intBig msg, intBig d_e, intBig n, QProgressBar *ch)
     //plus efficace
     //QDateTime start2 = QDateTime::currentDateTime();
     //qDebug(QString("début d'un chiffrement:"+msg.toString()+" ^ "+d_e.toString()+" % "+n.toString()).toStdString().c_str());
-    ch->setMinimum(0);
-    ch->setMaximum(std::log10(d_e.toDouble())); //la longeur de d_e
-    ch->setValue(0);
-    QCoreApplication::processEvents();
 
     QList<intBig> msg2_i = {msg};
-    QList<intBig> deux_puiss_i = {1};
+
     for (int i = 1; i <= std::log2(d_e.toDouble()); i++) {
         // on calcul msg^puiss % n, avec puiss=2^i
-        msg2_i.append(msg2_i.last() * msg2_i.last() % n);
+        msg2_i.append((msg2_i.at(i - 1) * msg2_i.at(i - 1)) % n);
+    }
+    for (int i = deux_puiss_i.size(); i < msg2_i.size(); i++) {
         deux_puiss_i.append(deux_puiss_i.last() * 2);
     }
 
     intBig retour(1);
-    int nb_progression = 0, i;
+    int i;
     while (!d_e.isEmpty()) { // d_e != 0
         i = std::log2(d_e.toDouble());
 
         d_e -= deux_puiss_i.at(i);
         retour *= msg2_i.at(i);
         retour %= n;
-
-        if ((++nb_progression %= 100) == 0) {
-            ch->setValue(ch->maximum() - std::log10(d_e.toDouble()));
-        }
     }
 
-    ch->setValue(ch->maximum());
-    //qDebug(QString("fin chiffrement:"+retour.toString()+" en "+QString::number(QDateTime::currentMSecsSinceEpoch()-start2.toMSecsSinceEpoch())+" msec").toStdString().c_str());
+    //qDebug(QString("fin chiffrement:"+retour.toString()+" en "+QString::number(debugTime()-start2.toMSecsSinceEpoch())+" msec").toStdString().c_str());
     return retour;
 }

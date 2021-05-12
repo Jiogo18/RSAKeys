@@ -73,11 +73,11 @@ void fenetre::test()
     //qDebug() << a.toString() << b.toString() << a.toString(20) << b.toString(20) << a.toString(90) << b.toString(90);
     //qDebug(RSA::InverseBModuloN(a, b).toString().toStdString().c_str());
 
-    intBig a = RSA::chiffrer(123, 217691, 432739, ui->GProgressChiffrement);
-    intBig b = RSA::chiffrer(a, 217691, 432739, ui->GProgressChiffrement);
+    intBig a = RSA::chiffrer(123, 217691, 432739);
+    intBig b = RSA::chiffrer(a, 217691, 432739);
     debug(a.toString()); //chiffré 1 fois
     debug(b.toString()); //chiffré 2 fois
-    debug(RSA::chiffrer(123, intBig(217691) ^ 2, 432739, ui->GProgressChiffrement).toString());
+    debug(RSA::chiffrer(123, intBig(217691) ^ 2, 432739).toString());
 }
 
 void fenetre::genererRandom()
@@ -88,17 +88,16 @@ void fenetre::genererRandom()
     if (min < 3) //on skip meme 2, de toute facon pas besoin
         min = 3;
     intBig r(min);
+    if (r % 2 == 0) r++; //pair
     ui->GrandomText->clear();
     QCoreApplication::processEvents();
-    QRandomGenerator64 rd = QRandomGenerator64::securelySeeded();
     while (i < 4) {
-        r = min + rd.bounded(pow(2, 31));
-        if (r % 2 == 0) r++; //pair
         if (r.isPrime()) {
             i++;
             ui->GrandomText->append(r.toString());
             QCoreApplication::processEvents();
         }
+        r += 2;
     }
     ui->GrandomButton->setEnabled(true);
 }
@@ -117,7 +116,7 @@ void fenetre::chiffrerD()
 {
     ui->CD_bCoderD->setDisabled(true);
     debug("Début du chiffrement avec D.");
-    QDateTime start = QDateTime::currentDateTime();
+    qint64 start = RSA::debugTime();
     intBig msg(ui->CD_M->text(), 10);
     intBig d(ui->CD_D->text(), 10);
     intBig n(ui->CD_N->text(), 10);
@@ -128,10 +127,10 @@ void fenetre::chiffrerD()
         return;
     } else
         ui->CD_Resultat->setText("Chiffrement avec D...");
-    ui->CD_MChiffre->setText(RSA::chiffrer(msg, d, n, ui->CDProgressChiffrement).toString(10));
-    QString temp = QString::number(QDateTime::currentMSecsSinceEpoch() - start.toMSecsSinceEpoch());
-    ui->CD_Resultat->setText("Chiffré avec D en " + temp + " msec.");
-    debug(QString("Chiffré avec D en " + temp + " msec."));
+    ui->CD_MChiffre->setText(RSA::chiffrer(msg, d, n).toString(10));
+    qint64 temps = RSA::debugTime() - start;
+    ui->CD_Resultat->setText("Chiffré avec D en " + QString::number(temps / 1000000) + " msec.");
+    debug(QString("Chiffré avec D en " + QString::number(temps / 1000000) + " msec."));
     ui->CD_bCoderD->setEnabled(true);
 }
 
@@ -139,7 +138,7 @@ void fenetre::chiffrerE()
 {
     ui->CD_bCoderE->setDisabled(true);
     debug("Début du chiffrement avec E.");
-    QDateTime start = QDateTime::currentDateTime();
+    qint64 start = RSA::debugTime();
     intBig msg(ui->CD_M->text(), 10);
     intBig e(ui->CD_E->text(), 10);
     intBig n(ui->CD_N->text(), 10);
@@ -150,10 +149,10 @@ void fenetre::chiffrerE()
         return;
     } else
         ui->CD_Resultat->setText("Chiffrement avec E...");
-    ui->CD_MChiffre->setText(RSA::chiffrer(msg, e, n, ui->CDProgressChiffrement).toString(10));
-    QString temp = QString::number(QDateTime::currentMSecsSinceEpoch() - start.toMSecsSinceEpoch());
-    ui->CD_Resultat->setText("Chiffré avec E en " + temp + " msec.");
-    debug(QString("Chiffré avec E en " + temp + " msec."));
+    ui->CD_MChiffre->setText(RSA::chiffrer(msg, e, n).toString(10));
+    qint64 temps = RSA::debugTime() - start;
+    ui->CD_Resultat->setText("Chiffré avec E en " + QString::number(temps / 1000000) + " msec.");
+    debug(QString("Chiffré avec E en " + QString::number(temps / 1000000) + " msec."));
     ui->CD_bCoderE->setEnabled(true);
 }
 
@@ -183,7 +182,7 @@ void fenetre::chiffrerEP()
 
 void fenetre::debug(QString str)
 {
-    qDebug("%s", QString("[" + QTime::currentTime().toString("hh:mm:ss") + "] " + str).toStdString().c_str());
+    qDebug().nospace() << "[" << QTime::currentTime().toString("hh:mm:ss") << "] " << str;
 }
 
 void fenetre::crackerMsg()
@@ -193,7 +192,7 @@ void fenetre::crackerMsg()
     ui->BMProgressTab->setValue(0);
     ui->BMProgressEstime->setValue(0);
     ui->BM_log->clear();
-    quint64 startCrack = QDateTime::currentMSecsSinceEpoch();
+    qint64 startCrack = RSA::debugTime();
     QVector<intBig> tab = QVector<intBig>(ui->BM_TabTaille->value());
     ui->BMProgressTab->setMaximum(tab.size());
     intBig newM;
@@ -206,56 +205,82 @@ void fenetre::crackerMsg()
         ui->BM_bCraquer->setEnabled(true);
         return;
     }
-    tab[0] = M; //la premiere case
-    intBig i;   //pas bien pour les placements ds tab (il faut un quint64 max) mais après c'est utile
-    //quint64 iEcart=0;
+    tab[0] = M;  //la premiere case
+    intBig iOpe; // pas utilisé pour le tableau car pas opti, mais utile après
+    int iLoopActu = 0;
+
     bool trouve = false;
-    quint64 start = 0;
+    qint64 start = RSA::debugTime(), end, timeRSA = 0, timeNoRSA = 0;
     ui->BMProgressEstime->setMaximum(100);
-    do {
-        start = QDateTime::currentMSecsSinceEpoch();
-        newM = RSA::chiffrer(M, D, N, ui->BMProgressChiffrement);
-        i++;
-        ui->BM_log->append(i.toString() + ": " + M.toString() + " >> " + newM.toString() + " (en " + QString::number(QDateTime::currentMSecsSinceEpoch() - start) + " msec)");
-        ui->BMProgressEstime->setValue((i * 1000 / N).toString().toULongLong());
-        ui->BMProgressTab->setValue(i.toString().toULongLong());
-        if (tab.contains(newM)) { //on l'a trouvé, c'est le précédent soit M
+    for (int iTab = 1; iTab < tab.size(); iTab++) {
+        end = RSA::debugTime();
+        timeNoRSA += end - start;
+        start = end;
+        newM = RSA::chiffrer(M, D, N);
+        end = RSA::debugTime();
+        timeRSA += end - start;
+        ui->BM_log->append(QString::number(iTab) + ": " + M.toString() + " >> " + newM.toString() + " (en " + QString::number((end - start) / 1000000) + " msec)");
+        start = end;
+        if ((++iLoopActu %= 100) == 0) {
+            ui->BMProgressTab->setValue(iTab);
+            QCoreApplication::processEvents();
+        }
+        if (tab.contains(newM)) { //on l'a trouvé car le cycle est plus petit que le tableau
             trouve = true;
-            if (tab.indexOf(newM) == 0) {
-                i--;
+            if (tab.first() == newM) { // newM correspond au tout premier
+                iTab--;
             } else { //si il y a eu une boucle, que c'est pas vraiment le premier
-                i = tab.indexOf(newM) - 1;
-                M = tab.at(i.toString().toULongLong());
+                iTab = tab.indexOf(newM) - 1;
+                M = tab.at(iTab);
             }
             newM = M; //newM est affiché au final
+            iOpe = iTab;
+            break;
         } else {
-            tab[i.toString().toULongLong()] = newM;
+            tab[iTab] = newM;
             M = newM;
         }
-
-    } while (i < tab.size() - 1 && !trouve);
+    }
     ui->BMProgressTab->setValue(ui->BMProgressTab->maximum());
 
-    if (!trouve)
+    qDebug().nospace() << "[Cracker Partie 1] Temps hors chiffrement : " << timeNoRSA << " ns, Temps chiffrement : " << timeRSA << " ns";
+    timeNoRSA = 0;
+    timeRSA = 0;
+    if (!trouve) {
         ui->BM_log->append("passage à la vitesse supérieur");
-    while (!trouve) //continue sans agrandir le tableau avec un D plus grand
+        iOpe = tab.size() - 1;
+    }
+    while (!trouve) //continue, sans agrandir le tableau, avec un D plus grand
     {
-        start = QDateTime::currentMSecsSinceEpoch();
-        newM = RSA::chiffrer(M, D2, N, ui->BMProgressChiffrement);
-        i += tab.size();
-        ui->BM_log->append(i.toString() + ": " + M.toString() + " >> " + newM.toString() + " (en " + QString::number(QDateTime::currentMSecsSinceEpoch() - start) + " msec)");
-        ui->BMProgressEstime->setValue((i * 1000 / N).toString().toULongLong());
+        end = RSA::debugTime();
+        timeNoRSA += end - start;
+        start = end;
+        newM = RSA::chiffrer(M, D2, N);
+        iOpe += tab.size();
+        end = RSA::debugTime();
+        timeRSA += end - start;
+        ui->BM_log->append(iOpe.toString() + ": " + M.toString() + " >> " + newM.toString() + " (en " + QString::number((end - start) / 1000000) + " msec)");
+        start = end;
+        if ((++iLoopActu %= 100) == 0) {
+            ui->BMProgressEstime->setValue((iOpe * 1000 / N).toULongLong());
+            QCoreApplication::processEvents();
+        }
         if (tab.contains(newM)) {
-            i -= tab.indexOf(newM) - 1; //on l'a trouvé
-            newM = RSA::chiffrer(M, D ^ (tab.size() - tab.indexOf(newM) - 1), N, ui->BMProgressChiffrement);
+            int iTab = tab.indexOf(newM);
+            iOpe -= iTab - 1; //on l'a trouvé
+            newM = RSA::chiffrer(M, D ^ (tab.size() - iTab - 1), N);
             trouve = true;
-        } else
+        } else {
             M = newM;
+        }
     }
     //msg trouvé !
+    qint64 temps = RSA::debugTime() - startCrack;
     ui->BM_MCasse->setText(newM.toString());
-    ui->BM_log->append("Message trouvé en " + QString::number(QDateTime::currentMSecsSinceEpoch() - startCrack) + " msec");
+    ui->BM_log->append("Message trouvé en " + QString::number(temps / 1000000) + " msec");
     ui->BMProgressEstime->setValue(ui->BMProgressEstime->maximum());
+    qDebug().nospace() << "Message trouvé en " << temps / 1000000 << " ms (taille=" << tab.size() << ") N=" << N << " opérations=" << iOpe;
+    qDebug().nospace() << "[Cracker Partie 2] Temps hors chiffrement : " << timeNoRSA << " ns, Temps chiffrement : " << timeRSA << " ns";
 
     ui->BM_bCraquer->setEnabled(true);
 }

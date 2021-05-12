@@ -351,6 +351,24 @@ long double intBig::toDouble() const
     return v;
 }
 
+long long intBig::toULongLong() const
+{
+    switch (value.size()) {
+    case 0:
+        return 0;
+    case 1:
+        return value.at(0);
+    }
+    if (value.last() * pow(base, value.size() - 1) > 1e4932L) return INFINITY; // limite des qint64
+    qint64 v = 0;
+    qint64 base2 = 1;
+    for (int i = 0; i < value.size(); i++) {
+        v += value.at(i) * base2;
+        base2 *= base;
+    }
+    return v;
+}
+
 //////////////////////////////// intBig temporaire ////////////////////////////////
 
 QString intBig::toString(quint64 base) const { return intBigB(*this).toString(base); }
